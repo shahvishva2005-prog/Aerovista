@@ -1,0 +1,44 @@
+{
+  "summary": "End-to-end test of AeroVista Airlines MVP. Backend: 14/15 pytest tests pass (one real spec gap — only 194 airports). Frontend: home, search, admin login + dashboard with revenue chart, full customer booking flow (register → search → seat select → billing → payment → confirmation w/ PNR) all PASS. PDFs download correctly. /checkin shows graceful error. Two issues observed: airports < 200, and /account redirects to /login on hard navigation (likely ProtectedRoute race condition before /auth/me resolves).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/airports", "issue": "Returns 194 airports; spec requires 200+. Add ~6 more airports to the seed list in /app/backend/data/."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ProtectedRoute / Account page", "issue": "On hard navigation to /account (or refresh), user is redirected to /login?next=/account even with a valid token in localStorage. Likely a race condition: route guard fires before /api/auth/me resolves and populates user state. Fix: gate the redirect on an 'auth-loading' flag (return null/spinner while loading user), and only redirect when loading=false and user=null.", "selector": "/account route guard in /app/frontend/src/lib/auth.* and /app/frontend/src/App.js", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "PNR display (Confirmation, Track input)", "issues": ["PNR characters '0' and 'O' are visually indistinguishable in the current serif font (e.g., AVLPV0P5 vs AVLPVOP5). Use a monospace font for PNR display and inputs, or disambiguate the alphabet used in PNR generation (exclude 'O', 'I', '0', '1')."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_aerovista.py",
+    "/app/test_reports/pytest/aerovista_results.xml"
+  ],
+  "action_items": [
+    "Add ~6 more airports to seed data so GET /api/airports returns 200+ entries (spec requirement).",
+    "Fix ProtectedRoute on /account (and other customer-only routes) to wait for /api/auth/me to resolve before redirecting to /login. Currently logged-in users are bounced to login on hard refresh / direct navigation.",
+    "(UX polish) Either render PNR in a monospace font on the confirmation/track/checkin screens or restrict PNR alphabet to remove ambiguous characters (O/0, I/1)."
+  ],
+  "critical_code_review_comments": [
+    "/app/backend/server.py is 787 lines — consider splitting into routers (auth, bookings, flights, admin, pilot, crew) for maintainability.",
+    "Endpoints use PROJECT_NO_ID to exclude Mongo _id — good. Continue this pattern for any new endpoints.",
+    "PNR generation in _gen_codes uses a charset that includes both 'O' and '0'; consider excluding ambiguous chars.",
+    "Payment gateway is dummy/always-success — clearly MOCKED, fine for MVP.",
+    "Email sending is MOCKED (EMAIL_ENABLED=false). All 4 categories (welcome, booking_confirmation, etc.) write to db.email_logs with status='mocked' — verified."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_aerovista.py (created)"
+  ],
+  "success_rate": {"backend": "93% (14/15)", "frontend": "90% (booking happy path works; /account requires re-login on hard nav)"},
+  "test_credentials": "Admin: admin@aerovista.com/Admin@123; Pilot: pilot@aerovista.com/Pilot@123; Crew: crew@aerovista.com/Crew@123; Customer: customer@aerovista.com/Customer@123. Tests also register fresh customers (e2e-test-* / Test@1234).",
+  "seed_data_creation": "POST /api/admin/seed hit at start of test session. Idempotent — returns 'Already seeded' on subsequent calls. The flow created 1 fresh customer + 1 booking + 1 paid payment + 1 refund per pytest run.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend test file at /app/backend/tests/test_aerovista.py covers airports, seed, stats, auth, search, flight detail+seatmap, full booking + payment, all 4 PDFs, refund, track, admin dashboard, admin email-logs, pilot flights, crew flights+manifest. After main agent fixes the 2 issues, re-run: `python -m pytest /app/backend/tests/test_aerovista.py -v` and re-test /account UI flow (register → navigate to /account directly; should NOT redirect to /login).",
+  "rca_of_the_issue": "(1) Airports count: backend likely seeds <200 airports in /app/backend/data/airports.* — add 6+ entries to meet spec. (2) /account redirect: Inspect ProtectedRoute and the auth context loading flag. The current implementation appears to evaluate `user==null` at first render — before the async /api/auth/me call (triggered when a token exists in localStorage) has resolved — and immediately navigates to /login. Fix by tracking an `authLoading` boolean alongside `user`, and only redirecting once `authLoading===false && user===null`."
+}
