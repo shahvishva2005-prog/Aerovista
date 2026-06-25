@@ -372,8 +372,9 @@ async def flight_detail(flight_id: str):
 
 # ===== Booking =====
 def _gen_codes(prefix: str, n: int = 6) -> str:
-    import secrets, string
-    alphabet = string.ascii_uppercase + string.digits
+    import secrets
+    # Exclude ambiguous characters: 0, O, 1, I
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     return prefix + "".join(secrets.choice(alphabet) for _ in range(n))
 
 

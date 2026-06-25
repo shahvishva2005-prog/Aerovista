@@ -27,8 +27,11 @@ import PilotDashboard from "./pages/PilotDashboard";
 import CrewDashboard from "./pages/CrewDashboard";
 
 function PrivateRoute({ children, roles }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const loc = useLocation();
+  if (loading) {
+    return <div className="pt-32 text-center text-white/60">Verifying credentials…</div>;
+  }
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
   return children;

@@ -212,6 +212,19 @@ AIRPORTS = [
     {"iata": "MBJ", "city": "Montego Bay", "name": "Sangster Intl", "country": "Jamaica"},
     {"iata": "NAS", "city": "Nassau", "name": "Lynden Pindling Intl", "country": "Bahamas"},
     {"iata": "BGI", "city": "Bridgetown", "name": "Grantley Adams Intl", "country": "Barbados"},
+
+    # Additional global hubs
+    {"iata": "ZUR", "city": "Zurich", "name": "Zurich Kloten", "country": "Switzerland"},
+    {"iata": "SOF", "city": "Sofia", "name": "Sofia Airport", "country": "Bulgaria"},
+    {"iata": "BEG", "city": "Belgrade", "name": "Nikola Tesla", "country": "Serbia"},
+    {"iata": "KIV", "city": "Chisinau", "name": "Chisinau Intl", "country": "Moldova"},
+    {"iata": "RIX", "city": "Riga", "name": "Riga Intl", "country": "Latvia"},
+    {"iata": "VNO", "city": "Vilnius", "name": "Vilnius Intl", "country": "Lithuania"},
+    {"iata": "TLL", "city": "Tallinn", "name": "Lennart Meri Tallinn", "country": "Estonia"},
+    {"iata": "LJU", "city": "Ljubljana", "name": "Joze Pucnik", "country": "Slovenia"},
+    {"iata": "ZAG", "city": "Zagreb", "name": "Franjo Tudman", "country": "Croatia"},
+    {"iata": "SKP", "city": "Skopje", "name": "Skopje Intl", "country": "North Macedonia"},
+    {"iata": "TIA", "city": "Tirana", "name": "Tirana Intl", "country": "Albania"},
 ]
 
 
