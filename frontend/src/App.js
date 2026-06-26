@@ -47,7 +47,7 @@ function Shell() {
       {!hideShell && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/search" element={<FlightSearch />} />
+        <Route path="/search" element={<FlightSearchPage />} />
         <Route path="/seats/:flightId" element={<SeatSelection />} />
         <Route path="/billing/:flightId" element={<PrivateRoute><Billing /></PrivateRoute>} />
         <Route path="/payment/:bookingId" element={<PrivateRoute><Payment /></PrivateRoute>} />
