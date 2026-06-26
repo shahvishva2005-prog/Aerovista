@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plane, Award, Globe, ShieldCheck, Sparkles, Star, ArrowRight, MapPin } from "lucide-react";
 import FlightSearchWidget from "../components/FlightSearchWidget";
+import WorldMap from "../components/WorldMap";
 import { api } from "../lib/api";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1687885461404-5ab0c1aa4ad9?crop=entropy&cs=srgb&fm=jpg&w=1920&q=85";
@@ -89,16 +90,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* STATS - Light section */}
-      <section className="av-section-pad av-light-section">
+      {/* STATS */}
+      <section className="av-section-pad bg-[#0B132B]">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-600 text-xs tracking-[0.3em] uppercase mb-4 font-semibold">By the numbers</div>
+          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">By the numbers</div>
           <div className="flex flex-wrap items-end justify-between gap-4 mb-3">
-            <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] max-w-3xl font-light">A scale that speaks for itself.</h2>
-            <p className="font-serif-display italic text-amber-700 text-lg">Connecting Horizons, Delivering Excellence</p>
+            <h2 className="font-serif-display text-4xl md:text-5xl text-white max-w-3xl font-light">A scale that speaks for itself.</h2>
+            <p className="font-serif-display italic text-amber-300 text-lg">Connecting Horizons, Delivering Excellence</p>
           </div>
           <div className="av-divider-gold mb-10 max-w-[260px]" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#E8E2D3]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
             {[
               ["Passengers Served", stats.passengers || "2.5M+"],
               ["Flights Completed", stats.flights_completed || "185,000+"],
@@ -109,9 +110,9 @@ export default function Home() {
               ["Destinations", stats.destinations || "120+"],
               ["Satisfaction", stats.satisfaction || "98.7%"],
             ].map(([label, val]) => (
-              <div key={label} className="bg-[#F7F5EF] p-8 group hover:bg-white transition">
+              <div key={label} className="bg-[#0B132B] p-8 group hover:bg-[#0F1A3A] transition">
                 <div className="font-serif-display text-4xl md:text-5xl av-text-gold-grad font-light mb-2">{val}</div>
-                <div className="text-[#0B132B]/70 text-xs tracking-[0.2em] uppercase">{label}</div>
+                <div className="text-white/60 text-xs tracking-[0.2em] uppercase">{label}</div>
               </div>
             ))}
           </div>
@@ -152,19 +153,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* OFFERS - Light section */}
-      <section className="av-section-pad av-light-section">
+      {/* OFFERS */}
+      <section className="av-section-pad bg-[#0B132B]">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-600 text-xs tracking-[0.3em] uppercase mb-4 font-semibold">Special Offers</div>
-          <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light mb-3">Curated savings for our guests.</h2>
-          <div className="av-divider-gold mb-12 max-w-[260px]" />
+          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Special Offers</div>
+          <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light mb-12">Curated savings for our guests.</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {OFFERS.map((o) => (
-              <div key={o.title} className={`rounded-2xl p-7 bg-white border border-[#0B132B]/10 hover:border-amber-500/50 hover:shadow-xl transition`}>
-                <div className="text-amber-600 text-[10px] tracking-[0.3em] uppercase mb-4 font-semibold">{o.tag}</div>
-                <h3 className="font-serif-display text-2xl text-[#0B132B] mb-2">{o.title}</h3>
-                <p className="text-[#0B132B]/70 text-sm font-light mb-5">{o.desc}</p>
-                <div className="font-mono-aero text-xs text-amber-700 bg-amber-100 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
+              <div key={o.title} className={`rounded-2xl p-7 bg-gradient-to-br ${o.color} border border-white/10 hover:border-amber-400/50 transition`}>
+                <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-4">{o.tag}</div>
+                <h3 className="font-serif-display text-2xl text-white mb-2">{o.title}</h3>
+                <p className="text-white/65 text-sm font-light mb-5">{o.desc}</p>
+                <div className="font-mono-aero text-xs text-amber-300 bg-amber-400/10 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
               </div>
             ))}
           </div>
@@ -192,11 +192,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHY US - Light section */}
-      <section className="av-section-pad av-light-section border-y border-[#0B132B]/10">
+      {/* GLOBAL ROUTE NETWORK */}
+      <section className="av-section-pad bg-[#080E21]">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
+            <div>
+              <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Global Route Network</div>
+              <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light">A skyway that spans the planet.</h2>
+              <p className="text-white/55 mt-2 max-w-2xl font-light">Live arcs trace our most-flown corridors from our Delhi and Mumbai hubs to over 120 destinations across six continents.</p>
+            </div>
+            <Link to="/destinations" className="text-amber-400 hover:text-amber-300 inline-flex items-center gap-2">
+              All destinations <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <WorldMap />
+        </div>
+      </section>
+
+      {/* WHY US */}
+      <section className="av-section-pad bg-[#0B132B] border-y border-white/5">
         <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-10">
-            <p className="font-serif-display italic text-amber-700 text-lg md:text-xl">Connecting Horizons, Delivering Excellence</p>
+            <p className="font-serif-display italic text-amber-300 text-lg md:text-xl">Connecting Horizons, Delivering Excellence</p>
             <div className="av-divider-gold mt-3 max-w-[200px] mx-auto" />
           </div>
           <div className="grid lg:grid-cols-4 gap-10">
@@ -211,8 +228,8 @@ export default function Home() {
                   <Icon className="w-5 h-5 text-[#0B132B]" />
                 </div>
                 <div>
-                  <h3 className="font-serif-display text-2xl text-[#0B132B] mb-2">{t}</h3>
-                  <p className="text-[#0B132B]/65 text-sm font-light">{d}</p>
+                  <h3 className="font-serif-display text-2xl text-white mb-2">{t}</h3>
+                  <p className="text-white/60 text-sm font-light">{d}</p>
                 </div>
               </div>
             ))}

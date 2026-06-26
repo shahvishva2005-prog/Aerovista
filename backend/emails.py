@@ -113,6 +113,17 @@ def tpl_reschedule(pnr: str) -> Tuple[str, str]:
                            f"<p>Your booking <strong>{pnr}</strong> has been rescheduled. Updated e-ticket attached.</p>"))
 
 
+def tpl_password_reset(name: str, link: str) -> Tuple[str, str]:
+    return ("Reset your AeroVista password",
+            _wrap_template(f"Hello {name},",
+                           "<p>We received a request to reset your AeroVista Airlines password. "
+                           "If you made this request, click the button below. This link is valid for 30 minutes.</p>"
+                           f"<p style='margin-top:24px;'><a href='{link}' "
+                           "style='display:inline-block;background:#D4AF37;color:#0B132B;font-weight:600;"
+                           "padding:12px 28px;border-radius:999px;text-decoration:none;'>Reset Password</a></p>"
+                           "<p style='color:#777; font-size:12px; margin-top:24px;'>If you did not request this, you can safely ignore this email.</p>"))
+
+
 # ===== Sender with DB logging =====
 async def send_email(db, to_email: str, subject: str, html_body: str,
                      attachments: Optional[List[Tuple[str, bytes]]] = None,

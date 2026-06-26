@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtINR } from "../lib/api";
+import { api, fmtINR, API } from "../lib/api";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Coins, Users, Plane, RefreshCw, BarChart3, Mail } from "lucide-react";
+import { Coins, Users, Plane, RefreshCw, BarChart3, Mail, Download } from "lucide-react";
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
@@ -76,6 +76,7 @@ export default function AdminDashboard() {
             ["bookings", `Bookings (${bookings.length})`],
             ["refunds", `Refunds (${refunds.length})`],
             ["emails", `Email Logs (${emails.length})`],
+            ["exports", "Exports"],
           ].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)} data-testid={`admin-tab-${v}`}
               className={`px-4 py-2 rounded-full text-sm ${tab === v ? "bg-amber-400 text-[#0B132B]" : "glass-light text-white/80"}`}>{l}</button>
@@ -136,10 +137,74 @@ export default function AdminDashboard() {
         {tab === "overview" && (
           <div className="glass-light rounded-2xl p-6">
             <h3 className="font-serif-display text-2xl text-white mb-2">Welcome, Operator</h3>
-            <p className="text-white/65 text-sm">Use the tabs above to manage Bookings, Refunds, and outgoing email logs. Email sending is currently <span className="text-amber-400">MOCKED</span> until SMTP App Password is configured in backend .env.</p>
+            <p className="text-white/65 text-sm">Use the tabs above to manage Bookings, Refunds, Email Logs, and download Exports. Email sending is currently <span className="text-amber-400">MOCKED</span> until SMTP App Password is configured in backend .env.</p>
             <div className="mt-4 inline-flex gap-2 items-center text-xs text-white/55"><Mail className="w-3.5 h-3.5 text-amber-400" /> All outgoing emails are logged in the database for audit.</div>
           </div>
         )}
+
+        {tab === "exports" && <ExportsPanel />}
+      </div>
+    </div>
+  );
+}
+
+function ExportsPanel() {
+  const kinds = [
+    { v: "bookings", l: "Bookings", desc: "PNR, customer, route, status, amount" },
+    { v: "payments", l: "Payments", desc: "Transactions, methods, banks, status" },
+    { v: "customers", l: "Customers", desc: "Profile + loyalty tier + points" },
+    { v: "refunds", l: "Refunds", desc: "Refund IDs, amounts, status" },
+    { v: "flights", l: "Flights", desc: "Schedule, aircraft, seats, prices" },
+  ];
+
+  const download = async (kind, fmt) => {
+    const token = localStorage.getItem("av_token");
+    const url = kind === "revenue"
+      ? `${API}/admin/revenue-report.${fmt}`
+      : `${API}/admin/exports/${kind}.${fmt}`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) { alert("Export failed"); return; }
+    const blob = await r.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `aerovista-${kind}.${fmt}`;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  return (
+    <div className="grid md:grid-cols-2 gap-4" data-testid="exports-panel">
+      {kinds.map((k) => (
+        <div key={k.v} className="glass-light rounded-2xl p-6">
+          <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-2">Export</div>
+          <h3 className="font-serif-display text-2xl text-white">{k.l}</h3>
+          <p className="text-white/55 text-sm mt-1">{k.desc}</p>
+          <div className="mt-4 flex gap-2">
+            <button onClick={() => download(k.v, "csv")} data-testid={`export-${k.v}-csv`}
+              className="text-xs px-4 py-2 rounded-full glass-light hover:bg-white/15 text-white inline-flex items-center gap-2">
+              <Download className="w-3.5 h-3.5" /> CSV
+            </button>
+            <button onClick={() => download(k.v, "xlsx")} data-testid={`export-${k.v}-xlsx`}
+              className="text-xs px-4 py-2 rounded-full bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold inline-flex items-center gap-2">
+              <Download className="w-3.5 h-3.5" /> Excel
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <div className="glass-light rounded-2xl p-6 md:col-span-2 bg-gradient-to-br from-amber-500/10 to-amber-500/0 border border-amber-400/30">
+        <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-2">Finance</div>
+        <h3 className="font-serif-display text-2xl text-white">Daily Revenue Report</h3>
+        <p className="text-white/55 text-sm mt-1">Aggregated by date with transaction count and revenue total.</p>
+        <div className="mt-4 flex gap-2">
+          <button onClick={() => download("revenue", "csv")} data-testid="export-revenue-csv"
+            className="text-xs px-4 py-2 rounded-full glass-light hover:bg-white/15 text-white inline-flex items-center gap-2">
+            <Download className="w-3.5 h-3.5" /> CSV
+          </button>
+          <button onClick={() => download("revenue", "xlsx")} data-testid="export-revenue-xlsx"
+            className="text-xs px-4 py-2 rounded-full bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold inline-flex items-center gap-2">
+            <Download className="w-3.5 h-3.5" /> Excel
+          </button>
+        </div>
       </div>
     </div>
   );

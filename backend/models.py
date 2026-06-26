@@ -109,3 +109,12 @@ class TrackReq(BaseModel):
     pnr: Optional[str] = None
     email: Optional[str] = None
     mobile: Optional[str] = None
+
+
+class ForgotPwdReq(BaseModel):
+    email: EmailStr
+
+
+class ResetPwdReq(BaseModel):
+    token: str
+    new_password: str

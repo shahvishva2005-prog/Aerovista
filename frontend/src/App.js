@@ -21,6 +21,8 @@ import Contact from "./pages/Contact";
 import Careers from "./pages/Careers";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PilotDashboard from "./pages/PilotDashboard";
@@ -39,7 +41,7 @@ function PrivateRoute({ children, roles }) {
 
 function Shell() {
   const loc = useLocation();
-  const hideShell = loc.pathname === "/login" || loc.pathname === "/register";
+  const hideShell = loc.pathname === "/login" || loc.pathname === "/register" || loc.pathname === "/forgot-password" || loc.pathname === "/reset-password";
   return (
     <>
       {!hideShell && <Navbar />}
@@ -60,6 +62,8 @@ function Shell() {
         <Route path="/careers" element={<Careers />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/account" element={<PrivateRoute roles={["customer", "admin"]}><CustomerDashboard /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute roles={["admin"]}><AdminDashboard /></PrivateRoute>} />
         <Route path="/pilot" element={<PrivateRoute roles={["pilot", "admin"]}><PilotDashboard /></PrivateRoute>} />

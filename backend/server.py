@@ -21,6 +21,7 @@ load_dotenv(ROOT_DIR / ".env")
 from models import (
     RegisterReq, LoginReq, TokenRes, FlightSearchReq,
     CreateBookingReq, PaymentReq, RefundReq, RescheduleReq, CheckInReq, TrackReq,
+    ForgotPwdReq, ResetPwdReq,
     gen_id, now_iso,
 )
 from auth import hash_password, verify_password, create_token, get_current_user, require_roles
@@ -732,6 +733,156 @@ async def admin_send_test_email(to: str = Body(..., embed=True), user=Depends(re
     subj, body = email_mod.tpl_welcome("Admin Test")
     log = await email_mod.send_email(db, to, "[Test] " + subj, body, category="test")
     return log
+
+
+# ===== Admin Exports (CSV / Excel) =====
+def _df_from_records(records, columns):
+    import pandas as pd
+    return pd.DataFrame(records, columns=columns)
+
+
+def _stream_csv(df, filename: str):
+    buf = io.StringIO()
+    df.to_csv(buf, index=False)
+    bio = io.BytesIO(buf.getvalue().encode("utf-8"))
+    return StreamingResponse(bio, media_type="text/csv",
+                             headers={"Content-Disposition": f"attachment; filename={filename}.csv"})
+
+
+def _stream_xlsx(df, filename: str, sheet: str = "Sheet1"):
+    bio = io.BytesIO()
+    with __import__("pandas").ExcelWriter(bio, engine="openpyxl") as w:
+        df.to_excel(w, index=False, sheet_name=sheet)
+    bio.seek(0)
+    return StreamingResponse(bio, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": f"attachment; filename={filename}.xlsx"})
+
+
+async def _export_bookings_rows():
+    items = await db.bookings.find({}, PROJECT_NO_ID).sort("booked_at", -1).limit(5000).to_list(5000)
+    rows = []
+    for b in items:
+        f = b.get("flight_snapshot", {})
+        rows.append({
+            "PNR": b.get("pnr"),
+            "Ticket": b.get("ticket_number"),
+            "Customer Email": b.get("user_email"),
+            "Flight": f.get("flight_number"),
+            "From": f.get("origin"), "To": f.get("destination"),
+            "Date": f.get("departure_date"), "Time": f.get("departure_time"),
+            "Cabin": b.get("cabin_class"),
+            "Passengers": len(b.get("passengers", [])),
+            "Status": b.get("status"),
+            "Payment Status": b.get("payment_status"),
+            "Amount": b.get("fare", {}).get("total", 0),
+            "Booked At": b.get("booked_at"),
+        })
+    return rows
+
+
+async def _export_payments_rows():
+    items = await db.payments.find({}, PROJECT_NO_ID).sort("paid_at", -1).limit(5000).to_list(5000)
+    return [{"Transaction ID": p.get("transaction_id"), "Booking ID": p.get("booking_id"),
+             "Method": p.get("method"), "Amount": p.get("amount"), "Currency": p.get("currency"),
+             "Status": p.get("status"), "Bank": p.get("bank"), "Paid At": p.get("paid_at")} for p in items]
+
+
+async def _export_customers_rows():
+    items = await db.users.find({"role": "customer"}, {"_id": 0, "password_hash": 0}).limit(5000).to_list(5000)
+    return [{"Name": c.get("name"), "Email": c.get("email"), "Mobile": c.get("mobile"),
+             "Loyalty Tier": c.get("loyalty_tier"), "Points": c.get("loyalty_points", 0),
+             "Joined": c.get("created_at")} for c in items]
+
+
+async def _export_refunds_rows():
+    items = await db.refunds.find({}, PROJECT_NO_ID).sort("created_at", -1).limit(5000).to_list(5000)
+    return [{"Refund ID": r.get("refund_id"), "PNR": r.get("pnr"), "Amount": r.get("amount"),
+             "Reason": r.get("reason"), "Status": r.get("status"), "Created At": r.get("created_at")} for r in items]
+
+
+async def _export_flights_rows():
+    items = await db.flights.find({}, PROJECT_NO_ID).sort("departure_iso", 1).limit(2000).to_list(2000)
+    return [{"Flight": f.get("flight_number"), "From": f.get("origin"), "To": f.get("destination"),
+             "Date": f.get("departure_date"), "Departure": f.get("departure_time"),
+             "Arrival": f.get("arrival_time"), "Aircraft": f.get("aircraft"),
+             "Total Seats": f.get("total_seats"), "Available": f.get("available_seats"),
+             "Base Price": f.get("base_price"), "Status": f.get("status")} for f in items]
+
+
+EXPORT_MAP = {
+    "bookings": (_export_bookings_rows, None),
+    "payments": (_export_payments_rows, None),
+    "customers": (_export_customers_rows, None),
+    "refunds": (_export_refunds_rows, None),
+    "flights": (_export_flights_rows, None),
+}
+
+
+@api.get("/admin/exports/{kind}.{fmt}")
+async def admin_export(kind: str, fmt: str, user=Depends(require_roles("admin"))):
+    if kind not in EXPORT_MAP:
+        raise HTTPException(status_code=400, detail="Unknown export kind")
+    if fmt not in ("csv", "xlsx"):
+        raise HTTPException(status_code=400, detail="Format must be csv or xlsx")
+    rows_fn, _ = EXPORT_MAP[kind]
+    rows = await rows_fn()
+    if not rows:
+        rows = [{"info": "No data"}]
+    df = _df_from_records(rows, list(rows[0].keys()))
+    filename = f"aerovista-{kind}-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+    return _stream_csv(df, filename) if fmt == "csv" else _stream_xlsx(df, filename, sheet=kind.title())
+
+
+@api.get("/admin/revenue-report.{fmt}")
+async def admin_revenue_report(fmt: str, user=Depends(require_roles("admin"))):
+    if fmt not in ("csv", "xlsx"):
+        raise HTTPException(status_code=400, detail="Format must be csv or xlsx")
+    # Aggregate by date
+    pipe = [
+        {"$match": {"paid_at": {"$ne": None}}},
+        {"$project": {"date": {"$substr": ["$paid_at", 0, 10]}, "amount": "$amount", "method": "$method"}},
+        {"$group": {"_id": "$date", "transactions": {"$sum": 1}, "revenue": {"$sum": "$amount"}}},
+        {"$sort": {"_id": 1}},
+    ]
+    agg = await db.payments.aggregate(pipe).to_list(5000)
+    rows = [{"Date": a["_id"], "Transactions": a["transactions"], "Revenue (INR)": round(a["revenue"], 2)} for a in agg]
+    if not rows:
+        rows = [{"Date": "-", "Transactions": 0, "Revenue (INR)": 0}]
+    df = _df_from_records(rows, ["Date", "Transactions", "Revenue (INR)"])
+    fn = f"aerovista-revenue-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+    return _stream_csv(df, fn) if fmt == "csv" else _stream_xlsx(df, fn, sheet="Revenue")
+
+
+# ===== Password Reset =====
+@api.post("/auth/forgot-password")
+async def forgot_password(req: ForgotPwdReq):
+    user = await db.users.find_one({"email": req.email.lower()})
+    # Always respond 200 to avoid leaking emails
+    if user:
+        token = create_token({"sub": user["id"], "purpose": "reset"}, expires_min=30)
+        link = f"{os.environ.get('FRONTEND_BASE_URL', 'https://sky-booking-hub-1.preview.emergentagent.com')}/reset-password?token={token}"
+        subj, body = email_mod.tpl_password_reset(user["name"], link)
+        await email_mod.send_email(db, user["email"], subj, body, category="password_reset")
+    return {"ok": True, "message": "If an account exists for this email, a reset link has been sent."}
+
+
+@api.post("/auth/reset-password")
+async def reset_password(req: ResetPwdReq):
+    try:
+        from auth import decode_token
+        payload = decode_token(req.token)
+        if payload.get("purpose") != "reset":
+            raise HTTPException(status_code=400, detail="Invalid token")
+        user_id = payload.get("sub")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    await db.users.update_one({"id": user_id}, {"$set": {"password_hash": hash_password(req.new_password)}})
+    return {"ok": True, "message": "Password updated. You can now sign in."}
 
 
 # ===== Pilot Portal =====

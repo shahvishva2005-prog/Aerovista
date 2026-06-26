@@ -65,6 +65,9 @@ export default function Login() {
           <div className="text-center text-white/60 text-sm mt-5">
             New to AeroVista? <Link to="/register" className="text-amber-400 hover:text-amber-300">Create account</Link>
           </div>
+          <div className="text-center text-white/55 text-xs mt-2">
+            <Link to="/forgot-password" data-testid="forgot-link" className="hover:text-amber-300">Forgot password?</Link>
+          </div>
 
           <div className="mt-8 p-4 glass-light rounded-xl text-xs text-white/65">
             <div className="text-amber-400 mb-2 tracking-[0.2em] uppercase">Demo credentials</div>
