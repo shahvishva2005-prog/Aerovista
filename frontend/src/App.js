@@ -6,7 +6,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
 import Home from "./pages/Home";
-import FlightSearch from "./pages/FlightSearch";
+import FlightSearch from "./pages/FlightSearchPage";
 import SeatSelection from "./pages/SeatSelection";
 import Billing from "./pages/Billing";
 import Payment from "./pages/Payment";
