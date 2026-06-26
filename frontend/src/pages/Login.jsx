@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { Plane, Mail, Lock } from "lucide-react";
+import PasswordField from "../components/PasswordField";
 
 const HERO = "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=1920&q=85";
 
@@ -52,7 +53,7 @@ export default function Login() {
 
           <div className="space-y-4">
             <Field icon={Mail} label="Email" type="email" value={email} onChange={setEmail} testId="login-email" />
-            <Field icon={Lock} label="Password" type="password" value={pw} onChange={setPw} testId="login-password" />
+            <PasswordField label="Password" value={pw} onChange={setPw} testId="login-password" autoComplete="current-password" />
           </div>
 
           {err && <div className="text-red-400 text-sm mt-3">{err}</div>}

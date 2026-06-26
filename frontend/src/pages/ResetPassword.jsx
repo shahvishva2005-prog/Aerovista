@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { Plane, Lock, CheckCircle2 } from "lucide-react";
+import PasswordField from "../components/PasswordField";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
@@ -46,9 +47,9 @@ export default function ResetPassword() {
           </div>
         ) : (
           <form onSubmit={submit}>
-            <Field label="New Password" value={pw} onChange={setPw} testId="reset-pw" />
+            <PasswordField label="New Password" value={pw} onChange={setPw} testId="reset-pw" autoComplete="new-password" />
             <div className="h-3" />
-            <Field label="Confirm New Password" value={pw2} onChange={setPw2} testId="reset-pw2" />
+            <PasswordField label="Confirm New Password" value={pw2} onChange={setPw2} testId="reset-pw2" autoComplete="new-password" />
             {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
             <button disabled={busy} data-testid="reset-submit"
               className="w-full mt-6 bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold py-3.5 rounded-full transition disabled:opacity-60">
@@ -61,18 +62,5 @@ export default function ResetPassword() {
         )}
       </div>
     </div>
-  );
-}
-
-function Field({ label, value, onChange, testId }) {
-  return (
-    <label className="block">
-      <span className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">{label}</span>
-      <div className="relative">
-        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
-        <input type="password" required value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}
-          className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3.5 text-white text-sm focus:border-amber-400 outline-none" />
-      </div>
-    </label>
   );
 }

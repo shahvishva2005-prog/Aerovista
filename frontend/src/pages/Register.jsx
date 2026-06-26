@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { Plane, User, Mail, Lock, Phone } from "lucide-react";
+import PasswordField from "../components/PasswordField";
 
 const HERO = "https://images.pexels.com/photos/30812970/pexels-photo-30812970.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
@@ -51,7 +52,7 @@ export default function Register() {
             <Field icon={User} label="Full Name" value={name} onChange={setName} testId="reg-name" />
             <Field icon={Mail} label="Email" type="email" value={email} onChange={setEmail} testId="reg-email" />
             <Field icon={Phone} label="Mobile" value={mobile} onChange={setMobile} testId="reg-mobile" />
-            <Field icon={Lock} label="Password" type="password" value={pw} onChange={setPw} testId="reg-password" />
+            <PasswordField label="Password" value={pw} onChange={setPw} testId="reg-password" autoComplete="new-password" />
           </div>
 
           {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
