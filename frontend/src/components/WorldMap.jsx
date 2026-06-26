@@ -91,17 +91,14 @@ export default function WorldMap() {
           const to = HUBS.find((h) => h.code === b);
           if (!from || !to) return null;
           const d = arcPath(from, to);
+          const dur = 6 + (i % 4);
+          const delay = i * 0.18;
           return (
             <g key={`${a}-${b}`}>
               <path d={d} stroke="#D4AF37" strokeOpacity="0.35" strokeWidth="0.8" fill="none" />
-              <motion.circle
-                r="2.4"
-                fill="#F3E5AB"
-                initial={{ offsetDistance: "0%" }}
-                animate={{ offsetDistance: "100%" }}
-                transition={{ duration: 6 + (i % 4), repeat: Infinity, ease: "linear", delay: i * 0.18 }}
-                style={{ offsetPath: `path('${d}')` }}
-              />
+              <circle r="2.4" fill="#F3E5AB">
+                <animateMotion dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" path={d} />
+              </circle>
             </g>
           );
         })}
