@@ -2,11 +2,13 @@
 All outgoing emails are logged to the `email_logs` collection regardless of sending status.
 """
 import os
+import re
 import smtplib
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+from email.utils import make_msgid, formatdate
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple
 import uuid
@@ -186,17 +188,41 @@ async def send_email(db, to_email: str, subject: str, html_body: str,
         return log
 
     try:
-        msg = MIMEMultipart()
+        # Strip HTML tags to create plain-text alternative (improves deliverability,
+        # avoids Gmail spam filters that flag HTML-only emails)
+        plain = re.sub(r"<[^>]+>", "", html_body)
+        plain = re.sub(r"\s+", " ", plain).strip()
+        plain = (plain[:2000] + "…") if len(plain) > 2000 else plain
+        plain += "\n\n---\nAeroVista Airlines\nConnecting Horizons, Delivering Excellence\nCustomer Support: airlinesaerovista@gmail.com"
+
+        msg = MIMEMultipart("alternative") if not attachments else MIMEMultipart("mixed")
         msg["From"] = f"AeroVista Airlines <{SMTP_EMAIL}>"
         msg["To"] = to_email
         msg["Subject"] = subject
-        msg.attach(MIMEText(html_body, "html"))
-        for fname, data in (attachments or []):
-            part = MIMEApplication(data, _subtype="pdf")
-            part.add_header("Content-Disposition", "attachment", filename=fname)
-            msg.attach(part)
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+        msg["Reply-To"] = SMTP_EMAIL
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid(domain="aerovista.airlines")
+        msg["X-Mailer"] = "AeroVista-Mailer/1.0"
+        msg["X-Priority"] = "3"
+        msg["List-Unsubscribe"] = f"<mailto:{SMTP_EMAIL}?subject=unsubscribe>"
+
+        if attachments:
+            alt = MIMEMultipart("alternative")
+            alt.attach(MIMEText(plain, "plain", "utf-8"))
+            alt.attach(MIMEText(html_body, "html", "utf-8"))
+            msg.attach(alt)
+            for fname, data in attachments:
+                part = MIMEApplication(data, _subtype="pdf")
+                part.add_header("Content-Disposition", "attachment", filename=fname)
+                msg.attach(part)
+        else:
+            msg.attach(MIMEText(plain, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=25) as s:
+            s.ehlo()
             s.starttls()
+            s.ehlo()
             s.login(SMTP_EMAIL, SMTP_PASSWORD)
             s.send_message(msg)
         log["status"] = "sent"

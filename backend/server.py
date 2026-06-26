@@ -98,7 +98,12 @@ async def admin_seed(force: bool = False):
         return {"message": "Already seeded", "users": existing}
 
     if force:
-        for coll in ["users", "flights", "aircraft", "pilots", "cabin_crew",
+        # NEVER wipe real customer accounts — only demo accounts and system-seeded data
+        await db.users.delete_many({"email": {"$in": [
+            "admin@aerovista.com", "pilot@aerovista.com",
+            "crew@aerovista.com", "customer@aerovista.com",
+        ]}})
+        for coll in ["flights", "aircraft", "pilots", "cabin_crew",
                      "bookings", "payments", "refunds", "email_logs",
                      "notifications", "loyalty", "audit_logs"]:
             await db[coll].delete_many({})
@@ -930,13 +935,43 @@ async def admin_revenue_report(fmt: str, user=Depends(require_roles("admin"))):
 @api.post("/auth/forgot-password")
 async def forgot_password(req: ForgotPwdReq):
     user = await db.users.find_one({"email": req.email.lower()})
-    # Always respond 200 to avoid leaking emails
+    # Always respond 200 to avoid leaking which emails exist
     if user:
         token = create_token({"sub": user["id"], "purpose": "reset"}, expires_min=30)
         link = f"{os.environ.get('FRONTEND_BASE_URL', 'https://sky-booking-hub-1.preview.emergentagent.com')}/reset-password?token={token}"
         subj, body = email_mod.tpl_password_reset(user["name"], link)
         await email_mod.send_email(db, user["email"], subj, body, category="password_reset")
-    return {"ok": True, "message": "If an account exists for this email, a reset link has been sent."}
+    else:
+        # Log the attempt so admins can debug "I didn't receive an email"
+        await db.email_logs.insert_one({
+            "id": gen_id(),
+            "to_email": req.email.lower(),
+            "subject": "[NOT SENT] Password reset for non-existent account",
+            "category": "password_reset_no_user",
+            "status": "skipped",
+            "error_message": "No account exists for this email address",
+            "sent_at": None,
+            "created_at": now_iso(),
+            "has_attachments": False,
+            "attachment_count": 0,
+        })
+    return {"ok": True, "message": "If an account exists for this email, a reset link has been sent. Please also check your Spam / Promotions folder."}
+
+
+@api.post("/admin/password-reset-link")
+async def admin_generate_reset_link(
+    email: str = Body(..., embed=True),
+    user=Depends(require_roles("admin")),
+):
+    """Generate a password reset link for a customer without sending email.
+    Useful when SMTP delivery fails or user can't find the email."""
+    target = await db.users.find_one({"email": email.lower()})
+    if not target:
+        raise HTTPException(status_code=404, detail="No user with that email")
+    token = create_token({"sub": target["id"], "purpose": "reset"}, expires_min=60)
+    link = f"{os.environ.get('FRONTEND_BASE_URL', '')}/reset-password?token={token}"
+    return {"user": target.get("email"), "name": target.get("name"),
+            "reset_link": link, "expires_minutes": 60}
 
 
 @api.post("/auth/reset-password")

@@ -35,6 +35,15 @@ export default function ForgotPassword() {
             <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
             <div className="text-white font-serif-display text-2xl mb-2">Check your inbox</div>
             <p className="text-white/65 text-sm">If an AeroVista account exists for <span className="text-amber-300">{email}</span>, a reset link is on its way. The link expires in 30 minutes.</p>
+            <div className="mt-4 p-3 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-200 text-xs text-left" data-testid="spam-notice">
+              <strong>Can't find the email?</strong>
+              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                <li>Check your <strong>Spam</strong> and <strong>Promotions</strong> folders</li>
+                <li>Search for <code className="bg-white/10 px-1 rounded">AeroVista</code> or <code className="bg-white/10 px-1 rounded">airlinesaerovista@gmail.com</code></li>
+                <li>If you registered with a different email, try that one</li>
+                <li>Still nothing? Contact support: <a href="mailto:airlinesaerovista@gmail.com" className="underline">airlinesaerovista@gmail.com</a></li>
+              </ul>
+            </div>
             <Link to="/login" className="inline-block mt-5 text-amber-400 hover:text-amber-300 text-sm">← Back to sign in</Link>
           </div>
         ) : (
