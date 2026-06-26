@@ -62,8 +62,14 @@ export default function Home() {
               <h1 className="font-serif-display text-5xl md:text-7xl lg:text-8xl font-light leading-[1.05] text-white tracking-tight max-w-5xl">
                 Experience <span className="av-text-gold-grad italic">World-Class</span><br />Aviation
               </h1>
-              <p className="text-white/75 text-lg md:text-xl mt-6 max-w-2xl font-light leading-relaxed">
-                Connecting over 120 destinations worldwide with a fleet of 85+ modern aircraft, crafted for travellers who expect more.
+              <div className="mt-6 flex items-center gap-4 max-w-2xl">
+                <div className="h-px flex-1 max-w-[60px] av-bg-gold opacity-80" />
+                <p className="font-serif-display italic text-amber-300 text-xl md:text-2xl tracking-wide">
+                  Connecting Horizons, Delivering Excellence
+                </p>
+              </div>
+              <p className="text-white/85 text-lg md:text-xl mt-5 max-w-2xl font-light leading-relaxed">
+                Over 120 destinations worldwide, a fleet of 85+ modern aircraft, crafted for travellers who expect more.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/search" data-testid="hero-book-flight" className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold px-7 py-3.5 rounded-full inline-flex items-center gap-2 transition">
@@ -83,12 +89,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* STATS */}
-      <section className="av-section-pad bg-[#0B132B]">
+      {/* STATS - Light section */}
+      <section className="av-section-pad av-light-section">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">By the numbers</div>
-          <h2 className="font-serif-display text-4xl md:text-5xl text-white mb-12 max-w-3xl font-light">A scale that speaks for itself.</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
+          <div className="text-amber-600 text-xs tracking-[0.3em] uppercase mb-4 font-semibold">By the numbers</div>
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-3">
+            <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] max-w-3xl font-light">A scale that speaks for itself.</h2>
+            <p className="font-serif-display italic text-amber-700 text-lg">Connecting Horizons, Delivering Excellence</p>
+          </div>
+          <div className="av-divider-gold mb-10 max-w-[260px]" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#E8E2D3]">
             {[
               ["Passengers Served", stats.passengers || "2.5M+"],
               ["Flights Completed", stats.flights_completed || "185,000+"],
@@ -99,9 +109,9 @@ export default function Home() {
               ["Destinations", stats.destinations || "120+"],
               ["Satisfaction", stats.satisfaction || "98.7%"],
             ].map(([label, val]) => (
-              <div key={label} className="bg-[#0B132B] p-8 group hover:bg-[#0F1A3A] transition">
+              <div key={label} className="bg-[#F7F5EF] p-8 group hover:bg-white transition">
                 <div className="font-serif-display text-4xl md:text-5xl av-text-gold-grad font-light mb-2">{val}</div>
-                <div className="text-white/60 text-xs tracking-[0.2em] uppercase">{label}</div>
+                <div className="text-[#0B132B]/70 text-xs tracking-[0.2em] uppercase">{label}</div>
               </div>
             ))}
           </div>
@@ -142,18 +152,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* OFFERS */}
-      <section className="av-section-pad bg-[#0B132B]">
+      {/* OFFERS - Light section */}
+      <section className="av-section-pad av-light-section">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Special Offers</div>
-          <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light mb-12">Curated savings for our guests.</h2>
+          <div className="text-amber-600 text-xs tracking-[0.3em] uppercase mb-4 font-semibold">Special Offers</div>
+          <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light mb-3">Curated savings for our guests.</h2>
+          <div className="av-divider-gold mb-12 max-w-[260px]" />
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {OFFERS.map((o) => (
-              <div key={o.title} className={`rounded-2xl p-7 bg-gradient-to-br ${o.color} border border-white/10 hover:border-amber-400/50 transition`}>
-                <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-4">{o.tag}</div>
-                <h3 className="font-serif-display text-2xl text-white mb-2">{o.title}</h3>
-                <p className="text-white/65 text-sm font-light mb-5">{o.desc}</p>
-                <div className="font-mono-aero text-xs text-amber-300 bg-amber-400/10 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
+              <div key={o.title} className={`rounded-2xl p-7 bg-white border border-[#0B132B]/10 hover:border-amber-500/50 hover:shadow-xl transition`}>
+                <div className="text-amber-600 text-[10px] tracking-[0.3em] uppercase mb-4 font-semibold">{o.tag}</div>
+                <h3 className="font-serif-display text-2xl text-[#0B132B] mb-2">{o.title}</h3>
+                <p className="text-[#0B132B]/70 text-sm font-light mb-5">{o.desc}</p>
+                <div className="font-mono-aero text-xs text-amber-700 bg-amber-100 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
               </div>
             ))}
           </div>
@@ -181,25 +192,31 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHY US */}
-      <section className="av-section-pad bg-[#0B132B] border-y border-white/5">
-        <div className="max-w-[1400px] mx-auto grid lg:grid-cols-4 gap-10">
-          {[
-            { Icon: Award, t: "Award-Winning", d: "World Travel Awards 2024 — Best Luxury Airline in Asia." },
-            { Icon: Globe, t: "Global Reach", d: "120+ destinations across 6 continents." },
-            { Icon: ShieldCheck, t: "Safety First", d: "7-star IATA safety rating across the fleet." },
-            { Icon: Sparkles, t: "SkyChip Loyalty", d: "Earn miles, redeem on flights, hotels, dining." },
-          ].map(({ Icon, t, d }) => (
-            <div key={t} className="flex gap-4">
-              <div className="w-12 h-12 rounded-full av-bg-gold grid place-items-center shrink-0">
-                <Icon className="w-5 h-5 text-[#0B132B]" />
+      {/* WHY US - Light section */}
+      <section className="av-section-pad av-light-section border-y border-[#0B132B]/10">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="text-center mb-10">
+            <p className="font-serif-display italic text-amber-700 text-lg md:text-xl">Connecting Horizons, Delivering Excellence</p>
+            <div className="av-divider-gold mt-3 max-w-[200px] mx-auto" />
+          </div>
+          <div className="grid lg:grid-cols-4 gap-10">
+            {[
+              { Icon: Award, t: "Award-Winning", d: "World Travel Awards 2024 — Best Luxury Airline in Asia." },
+              { Icon: Globe, t: "Global Reach", d: "120+ destinations across 6 continents." },
+              { Icon: ShieldCheck, t: "Safety First", d: "7-star IATA safety rating across the fleet." },
+              { Icon: Sparkles, t: "SkyChip Loyalty", d: "Earn miles, redeem on flights, hotels, dining." },
+            ].map(({ Icon, t, d }) => (
+              <div key={t} className="flex gap-4">
+                <div className="w-12 h-12 rounded-full av-bg-gold grid place-items-center shrink-0">
+                  <Icon className="w-5 h-5 text-[#0B132B]" />
+                </div>
+                <div>
+                  <h3 className="font-serif-display text-2xl text-[#0B132B] mb-2">{t}</h3>
+                  <p className="text-[#0B132B]/65 text-sm font-light">{d}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-serif-display text-2xl text-white mb-2">{t}</h3>
-                <p className="text-white/60 text-sm font-light">{d}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
