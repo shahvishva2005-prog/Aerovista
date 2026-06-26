@@ -39,6 +39,10 @@ db = client[os.environ["DB_NAME"]]
 app = FastAPI(title="AeroVista Airlines API")
 api = APIRouter(prefix="/api")
 
+# Background scheduler — runs pre-departure upsell scan hourly
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+scheduler = AsyncIOScheduler()
+
 # ===== Helpers =====
 PROJECT_NO_ID = {"_id": 0}
 
@@ -187,10 +191,19 @@ async def admin_seed(force: bool = False):
         ("HYD", "DEL"), ("MAA", "BOM"), ("BLR", "DEL"), ("DEL", "CDG"), ("BOM", "FRA"),
         ("DEL", "HKG"), ("BOM", "DOH"), ("DEL", "AUH"), ("BLR", "BOM"), ("CCU", "DEL"),
     ]
+    # Departure-time pool spread through the day
+    time_pool = [(5, 30), (6, 45), (7, 30), (8, 15), (9, 0), (10, 30), (11, 45),
+                 (13, 15), (14, 30), (15, 45), (17, 0), (18, 30), (19, 45),
+                 (21, 0), (22, 30)]
     flights = []
     for r_idx, (org, dst) in enumerate(routes):
+        # Each route gets a random number of daily schedules between 4 and 15
+        schedules_per_day = random.randint(4, 15)
+        # Pick that many unique time slots
+        route_times = random.sample(time_pool, schedules_per_day)
+        route_times.sort()
         for d in range(0, 30):
-            for sched in [(7, 30), (13, 15), (19, 45)]:
+            for s_idx, sched in enumerate(route_times):
                 dep_dt = (now + timedelta(days=d)).replace(hour=sched[0], minute=sched[1], second=0, microsecond=0)
                 duration = _haversine_minutes(org, dst)
                 arr_dt = dep_dt + timedelta(minutes=duration)
@@ -202,7 +215,7 @@ async def admin_seed(force: bool = False):
                 d_air = airport_by_iata(dst) or {}
                 flight = {
                     "id": gen_id(),
-                    "flight_number": f"AV{1000 + r_idx * 50 + d * 3 + sched[0]:04d}",
+                    "flight_number": f"AV{1000 + r_idx * 50 + d * 3 + s_idx:04d}",
                     "origin": org, "origin_city": o_air.get("city", org),
                     "destination": dst, "destination_city": d_air.get("city", dst),
                     "departure_date": dep_dt.date().isoformat(),
@@ -735,6 +748,66 @@ async def admin_send_test_email(to: str = Body(..., embed=True), user=Depends(re
     return log
 
 
+# ===== Pre-departure Upsell Scanner =====
+async def _scan_and_send_upsells(force_pnr: Optional[str] = None) -> dict:
+    """Find paid bookings departing in ~36h that haven't been upsold yet, and email them.
+
+    Window: 30h <= time_to_departure <= 42h. Idempotent via booking.upsell_sent flag.
+    Pass force_pnr to bypass time-window check for testing.
+    """
+    now = datetime.now(timezone.utc)
+    win_low = (now + timedelta(hours=30)).isoformat()
+    win_high = (now + timedelta(hours=42)).isoformat()
+
+    query = {"payment_status": "paid", "upsell_sent": {"$ne": True}}
+    if force_pnr:
+        query["pnr"] = force_pnr.upper()
+    else:
+        query["flight_snapshot.departure_iso"] = {"$gte": win_low, "$lte": win_high}
+
+    bookings = await db.bookings.find(query, PROJECT_NO_ID).limit(200).to_list(200)
+    sent = 0
+    errors = []
+    for b in bookings:
+        try:
+            f = b.get("flight_snapshot", {})
+            route = f"{f.get('origin','')} → {f.get('destination','')}"
+            link = f"{os.environ.get('FRONTEND_BASE_URL', '')}/account"
+            name = (b.get("billing", {}) or {}).get("contact_name") or b.get("user_email", "Traveller")
+            subj, body = email_mod.tpl_pre_departure_upsell(
+                name.split(" ")[0], b["pnr"], route,
+                f.get("departure_date", ""), f.get("departure_time", ""), link,
+            )
+            await email_mod.send_email(db, b["user_email"], subj, body, category="pre_departure_upsell")
+            await db.bookings.update_one(
+                {"id": b["id"]},
+                {"$set": {"upsell_sent": True, "upsell_sent_at": now.isoformat()}},
+            )
+            sent += 1
+        except Exception as e:
+            errors.append({"booking_id": b.get("id"), "error": str(e)})
+    return {"scanned": len(bookings), "sent": sent, "errors": errors,
+            "window": {"from": win_low, "to": win_high}, "force_pnr": force_pnr}
+
+
+@api.post("/admin/upsells/scan")
+async def admin_scan_upsells(user=Depends(require_roles("admin"))):
+    """Manually trigger the pre-departure upsell scan. Runs automatically every hour as well."""
+    result = await _scan_and_send_upsells()
+    return result
+
+
+@api.post("/admin/upsells/send/{pnr}")
+async def admin_send_upsell_now(pnr: str, user=Depends(require_roles("admin"))):
+    """Send a pre-departure upsell email to a specific PNR right now (bypasses 36h window).
+    Useful for testing. Marks booking as upsell_sent=true."""
+    result = await _scan_and_send_upsells(force_pnr=pnr)
+    if result["sent"] == 0:
+        raise HTTPException(status_code=404,
+                            detail="Booking not found, not paid, or already upsold")
+    return result
+
+
 # ===== Admin Exports (CSV / Excel) =====
 def _df_from_records(records, columns):
     import pandas as pd
@@ -935,4 +1008,16 @@ app.add_middleware(
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
     client.close()
+
+
+@app.on_event("startup")
+async def startup_event():
+    # Schedule the pre-departure upsell scanner to run every hour
+    if not scheduler.running:
+        scheduler.add_job(_scan_and_send_upsells, "interval", hours=1, id="upsell_scan",
+                          coalesce=True, max_instances=1, replace_existing=True)
+        scheduler.start()
+        logger.info("Started APScheduler with hourly pre-departure upsell scan")

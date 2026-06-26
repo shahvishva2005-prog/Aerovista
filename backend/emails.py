@@ -124,6 +124,40 @@ def tpl_password_reset(name: str, link: str) -> Tuple[str, str]:
                            "<p style='color:#777; font-size:12px; margin-top:24px;'>If you did not request this, you can safely ignore this email.</p>"))
 
 
+def tpl_pre_departure_upsell(name: str, pnr: str, route: str, dep_date: str, dep_time: str,
+                              upgrade_link: str) -> Tuple[str, str]:
+    return (f"Elevate your journey • {pnr}",
+            _wrap_template(f"You're flying in 36 hours, {name}",
+                           f"<p>Your flight <strong>{route}</strong> departs on <strong>{dep_date} at {dep_time}</strong> "
+                           f"(PNR <strong>{pnr}</strong>). Here are a few ways to make it unforgettable:</p>"
+                           "<table role='presentation' style='width:100%; margin-top:18px; border-collapse:separate; border-spacing:0 10px;'>"
+                           "<tr><td style='padding:14px 18px; background:#FFF8E1; border-radius:10px;'>"
+                           "  <strong style='color:#0B132B;'>Business Class Upgrade</strong>"
+                           "  <span style='color:#D4AF37; float:right; font-weight:600;'>from ₹4,999</span>"
+                           "  <div style='color:#666; font-size:12px; margin-top:4px;'>Lie-flat seat, priority boarding, dedicated cabin crew.</div>"
+                           "</td></tr>"
+                           "<tr><td style='padding:14px 18px; background:#FFF8E1; border-radius:10px;'>"
+                           "  <strong style='color:#0B132B;'>Extra Baggage 15 kg</strong>"
+                           "  <span style='color:#D4AF37; float:right; font-weight:600;'>₹800</span>"
+                           "  <div style='color:#666; font-size:12px; margin-top:4px;'>Add an extra checked bag — saves over airport rates.</div>"
+                           "</td></tr>"
+                           "<tr><td style='padding:14px 18px; background:#FFF8E1; border-radius:10px;'>"
+                           "  <strong style='color:#0B132B;'>Premium Lounge Access</strong>"
+                           "  <span style='color:#D4AF37; float:right; font-weight:600;'>₹1,499</span>"
+                           "  <div style='color:#666; font-size:12px; margin-top:4px;'>Pre-flight relaxation, gourmet bites, fast Wi-Fi.</div>"
+                           "</td></tr>"
+                           "<tr><td style='padding:14px 18px; background:#FFF8E1; border-radius:10px;'>"
+                           "  <strong style='color:#0B132B;'>Signature Meal Upgrade</strong>"
+                           "  <span style='color:#D4AF37; float:right; font-weight:600;'>₹599</span>"
+                           "  <div style='color:#666; font-size:12px; margin-top:4px;'>Chef-curated menu inspired by your destination.</div>"
+                           "</td></tr>"
+                           "</table>"
+                           f"<p style='margin-top:24px;'><a href='{upgrade_link}' "
+                           "style='display:inline-block;background:#D4AF37;color:#0B132B;font-weight:600;"
+                           "padding:12px 28px;border-radius:999px;text-decoration:none;'>Manage My Trip</a></p>"
+                           "<p style='color:#777; font-size:12px; margin-top:18px;'>Web check-in opens 24 hours before departure. We look forward to welcoming you onboard.</p>"))
+
+
 # ===== Sender with DB logging =====
 async def send_email(db, to_email: str, subject: str, html_body: str,
                      attachments: Optional[List[Tuple[str, bytes]]] = None,
