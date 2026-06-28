@@ -1,7 +1,8 @@
 import axios from "axios";
 
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:10000";
+
+const BASE_URL = import.meta.env.VITE_API_URL || "https://aerovista.onrender.com";
 export const API = `${BACKEND_URL}/api`;
 
 export const api = axios.create({ baseURL: API });
