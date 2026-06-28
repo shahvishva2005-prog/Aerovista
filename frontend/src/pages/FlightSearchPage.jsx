@@ -4,7 +4,7 @@ import { api, fmtINR } from "../lib/api";
 import FlightSearchWidget from "../components/FlightSearchWidget";
 import { Plane, Clock, ArrowRight, Info } from "lucide-react";
 
-export default function FlightSearch() {
+export default function FlightSearchPage() {
   const [params] = useSearchParams();
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(false);
