@@ -20,7 +20,8 @@ export default function AirportSelect({ value, onChange, placeholder = "Select a
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const selected = opts.find((o) => o.iata === value);
+// Ensures 'opts' is a valid array before attempting to run .find()
+const selected = Array.isArray(opts) ? opts.find((o) => o.iata === value) : null;
   const label = selected ? `${selected.city} (${selected.iata})` : value ? value : "";
 
   return (
