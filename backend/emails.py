@@ -35,7 +35,6 @@ async def send_email(db, to_email: str, subject: str, body: str, attachments=Non
             "attachment_count": len(attachments) if attachments else 0
         }
         await db.email_logs.insert_one(log_entry)
-        logger.info(f"Email delivery mocked for {to_email} (EMAIL_ENABLED=false)")
         return log_entry
 
     # 2. Check for missing configuration keys
@@ -54,18 +53,17 @@ async def send_email(db, to_email: str, subject: str, body: str, attachments=Non
             "attachment_count": len(attachments) if attachments else 0
         }
         await db.email_logs.insert_one(log_entry)
-        logger.error("Email delivery failed: RESEND_API_KEY environment variable missing.")
         return log_entry
 
     try:
         # Convert plain text newlines to clean HTML paragraph structures
         html_content = body.replace("\n", "<br>")
         
-        # Prepare payload data dictionary
+        # Prepare payload data dictionary matching exact Resend sandbox rules
         payload = {
-            "from": "AeroVista Airlines <onboarding@resend.dev>",
-            "to": [to_email],
-            "subject": subject,
+            "from": "onboarding@resend.dev",
+            "to": [to_email.strip()],
+            "subject": str(subject),
             "html": f"<div style='font-family: sans-serif; color: #111; padding: 20px;'>{html_content}</div>"
         }
         
@@ -76,7 +74,7 @@ async def send_email(db, to_email: str, subject: str, body: str, attachments=Non
             "https://api.resend.com/emails",
             data=data,
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "Authorization": f"Bearer {api_key.strip()}",
                 "Content-Type": "application/json"
             },
             method="POST"
@@ -91,7 +89,6 @@ async def send_email(db, to_email: str, subject: str, body: str, attachments=Non
                     "status": "sent", "error_message": None, "created_at": now_iso, "sent_at": now_iso,
                     "has_attachments": bool(attachments), "attachment_count": len(attachments) if attachments else 0
                 }
-                logger.info(f"Email successfully dispatched to {to_email} via Resend HTTP API.")
             else:
                 raise Exception(f"Unexpected status code {response.status}: {res_body}")
                 
@@ -102,14 +99,12 @@ async def send_email(db, to_email: str, subject: str, body: str, attachments=Non
             "status": "failed", "error_message": f"HTTP Error {e.code}: {error_text}", "created_at": now_iso,
             "sent_at": None, "has_attachments": bool(attachments), "attachment_count": len(attachments) if attachments else 0
         }
-        logger.error(f"Resend HTTP pipeline failure: {error_text}")
     except Exception as e:
         log_entry = {
             "id": gen_id(), "to_email": to_email, "subject": subject, "category": category,
-            "status": "failed", "error_message": f"Network exception layer error: {str(e)}", "created_at": now_iso,
+            "status": "failed", "error_message": str(e), "created_at": now_iso,
             "sent_at": None, "has_attachments": bool(attachments), "attachment_count": len(attachments) if attachments else 0
         }
-        logger.exception("Outbound email processing encountered an unexpected trace error.")
 
     # 5. Commit record status inside database tracking collection
     await db.email_logs.insert_one(log_entry)
