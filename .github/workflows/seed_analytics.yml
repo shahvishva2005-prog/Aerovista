@@ -7,9 +7,6 @@ jobs:
   seed-data:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -18,32 +15,20 @@ jobs:
       - name: Install Drivers
         run: pip install pymongo
 
-      - name: Create Temporary Script File
+      - name: Execute Script Engine
         run: |
-          cat << 'EOF' > run_seed.py
-          import random
-          import secrets
+          python -c '
+          import random, secrets, json, urllib.request, urllib.error
           from datetime import datetime, timedelta, timezone
           from pymongo import MongoClient
 
-          MONGO_URL = "mongodb+srv://shahvishva23_db_user:9xDmjpncMCRlTl7z@aerovista.vuqa6t4.mongodb.net/?retryWrites=true&w=majority"
-          client = MongoClient(MONGO_URL)
+          client = MongoClient("mongodb+srv://shahvishva23_db_user:9xDmjpncMCRlTl7z@aerovista.vuqa6t4.mongodb.net/?retryWrites=true&w=majority")
           db = client["aerovista"]
 
-          routes = [
-              ("DEL", "BOM"), ("DEL", "BLR"), ("BOM", "GOI"), ("DEL", "DXB"), ("BOM", "DXB"),
-              ("DEL", "LHR"), ("BOM", "SIN"), ("DEL", "JFK"), ("BLR", "SIN"), ("DEL", "BKK")
-          ]
-          aircrafts = [
-              {"model": "Boeing 777-300ER", "capacity": 396},
-              {"model": "Boeing 787-9 Dreamliner", "capacity": 290},
-              {"model": "Airbus A320neo", "capacity": 186},
-              {"model": "Airbus A350-900", "capacity": 325}
-          ]
+          routes = [("DEL", "BOM"), ("DEL", "BLR"), ("BOM", "GOI"), ("DEL", "DXB"), ("BOM", "DXB"), ("DEL", "LHR"), ("BOM", "SIN"), ("DEL", "JFK"), ("BLR", "SIN"), ("DEL", "BKK")]
+          aircrafts = [{"model": "Boeing 777-300ER", "capacity": 396}, {"model": "Boeing 787-9 Dreamliner", "capacity": 290}, {"model": "Airbus A320neo", "capacity": 186}, {"model": "Airbus A350-900", "capacity": 325}]
           cities = {"DEL": "Delhi", "BOM": "Mumbai", "BLR": "Bengaluru", "GOI": "Goa", "DXB": "Dubai", "LHR": "London", "SIN": "Singapore", "JFK": "New York", "BKK": "Bangkok"}
-
-          festivals = ["2026-10-23", "2026-11-08", "2026-12-25", "2026-03-27"] 
-          holidays = ["2026-01-26", "2026-08-15", "2026-10-02", "2026-05-01"]  
+          festivals, holidays = ["2026-10-23", "2026-11-08", "2026-12-25", "2026-03-27"], ["2026-01-26", "2026-08-15", "2026-10-02", "2026-05-01"]  
 
           mock_flights = []
           start_date = datetime.now(timezone.utc)
@@ -51,56 +36,29 @@ jobs:
           for i in range(50):
               org, dst = random.choice(routes)
               ac = random.choice(aircrafts)
-              
-              days_offset = random.randint(-15, 60)
-              dep_dt = start_date + timedelta(days=days_offset)
+              dep_dt = start_date + timedelta(days=random.randint(-15, 60))
               dep_dt = dep_dt.replace(hour=random.randint(5, 22), minute=random.choice([0, 15, 30, 45]), second=0, microsecond=0)
-              
-              date_str = dep_dt.date().isoformat()
-              duration_mins = random.randint(120, 480)
+              date_str, duration_mins = dep_dt.date().isoformat(), random.randint(120, 480)
               arr_dt = dep_dt + timedelta(minutes=duration_mins)
-              
               is_weekend = dep_dt.weekday() in (4, 5, 6)
               is_holiday = date_str in holidays
               is_festival = any(abs((dep_dt.date() - datetime.fromisoformat(f).date()).days) <= 2 for f in festivals)
               
-              if is_festival:
-                  season_type = "Festival Peak"
-                  base_price = random.randint(12000, 28000)
-              elif is_holiday or is_weekend:
-                  season_type = "Holiday/Weekend High"
-                  base_price = random.randint(8500, 15000)
-              elif dep_dt.month in (6, 7, 8):
-                  season_type = "Monsoon Off-Peak"
-                  base_price = random.randint(3500, 6500)
-              else:
-                  season_type = "Regular Weekday"
-                  base_price = random.randint(4500, 9500)
+              if is_festival: season_type, base_price = "Festival Peak", random.randint(12000, 28000)
+              elif is_holiday or is_weekend: season_type, base_price = "Holiday/Weekend High", random.randint(8500, 15000)
+              elif dep_dt.month in (6, 7, 8): season_type, base_price = "Monsoon Off-Peak", random.randint(3500, 6500)
+              else: season_type, base_price = "Regular Weekday", random.randint(4500, 9500)
 
-              flight_doc = {
-                  "id": f"analytics-{secrets.token_hex(12)}",
-                  "flight_number": f"AV{random.randint(2000, 8999)}",
-                  "origin": org, "origin_city": cities.get(org, org),
-                  "destination": dst, "destination_city": cities.get(dst, dst),
-                  "departure_date": date_str, "departure_time": dep_dt.strftime("%H:%M"),
-                  "arrival_date": arr_dt.date().isoformat(), "arrival_time": arr_dt.strftime("%H:%M"),
-                  "departure_iso": dep_dt.isoformat(), "arrival_iso": arr_dt.isoformat(),
-                  "duration_mins": duration_mins, "duration": f"{duration_mins // 60}h {duration_mins % 60:02d}m",
-                  "aircraft": ac["model"], "terminal": random.choice(["T1", "T2", "T3"]),
-                  "gate": f"{random.choice(['A', 'B', 'C'])}{random.randint(1, 25)}",
-                  "base_price": base_price, "total_seats": ac["capacity"],
-                  "available_seats": random.randint(5, ac["capacity"]), "status": "scheduled",
-                  "analytics": {
-                      "is_weekend": is_weekend, "is_holiday": is_holiday, "is_festival": is_festival,
-                      "season_type": season_type, "quarter": f"Q{(dep_dt.month - 1) // 3 + 1}",
-                      "day_of_week": dep_dt.strftime("%A")
-                  }
-              }
-              mock_flights.append(flight_doc)
+              mock_flights.append({
+                  "id": f"analytics-{secrets.token_hex(12)}", "flight_number": f"AV{random.randint(2000, 8999)}",
+                  "origin": org, "origin_city": cities.get(org, org), "destination": dst, "destination_city": cities.get(dst, dst),
+                  "departure_date": date_str, "departure_time": dep_dt.strftime("%H:%M"), "arrival_date": arr_dt.date().isoformat(), "arrival_time": arr_dt.strftime("%H:%M"),
+                  "departure_iso": dep_dt.isoformat(), "arrival_iso": arr_dt.isoformat(), "duration_mins": duration_mins, "duration": f"{duration_mins // 60}h {duration_mins % 60:02d}m",
+                  "aircraft": ac["model"], "terminal": random.choice(["T1", "T2", "T3"]), "gate": f"{random.choice(['A', 'B', 'C'])}{random.randint(1, 25)}",
+                  "base_price": base_price, "total_seats": ac["capacity"], "available_seats": random.randint(5, ac["capacity"]), "status": "scheduled",
+                  "analytics": {"is_weekend": is_weekend, "is_holiday": is_holiday, "is_festival": is_festival, "season_type": season_type, "quarter": f"Q{(dep_dt.month - 1) // 3 + 1}", "day_of_week": dep_dt.strftime("%A")}
+              })
 
           db.flights.insert_many(mock_flights)
-          print("✅ 50 Analytical Records successfully injected via cloud action pipeline!")
-          EOF
-
-      - name: Run Analytical Population Script
-        run: python run_seed.py
+          print("✅ 50 Analytics Records successfully written to Atlas Database cluster!")
+          '
