@@ -1,10 +1,12 @@
 """AeroVista Airlines - Email Dispatch Handler.
-Routes transaction notifications over Resend HTTP REST API 
-to cleanly bypass cloud platform port 587/465 firewall restrictions.
+Routes transaction notifications over Resend HTTP REST API using standard built-in 
+libraries to eliminate external dependencies and bypass platform port blocks.
 """
 import os
 import logging
-import requests
+import json
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone
 import secrets
 
@@ -13,13 +15,12 @@ logger = logging.getLogger(__name__)
 async def send_email(db, to_email: str, subject: str, body: str, attachments=None, category="general"):
     """Dispatches email payloads to the target recipient over secure Port 443 HTTPS.
     
-    Bypasses traditional SMTP protocol blocks on cloud providers like Render.
-    Logs transaction tracking metrics in the `email_logs` database collection.
+    Uses Python's built-in urllib to guarantee compatibility without requiring extra packages.
     """
     now_iso = datetime.now(timezone.utc).isoformat()
     gen_id = lambda: secrets.token_hex(12)
     
-    # 1. Fallback Rule: If globally disabled, store as a mocked transaction log entries
+    # 1. Fallback Rule: If globally disabled, store as a mocked transaction log
     if os.environ.get("EMAIL_ENABLED") != "true":
         log_entry = {
             "id": gen_id(),
@@ -60,69 +61,57 @@ async def send_email(db, to_email: str, subject: str, body: str, attachments=Non
         # Convert plain text newlines to clean HTML paragraph structures
         html_content = body.replace("\n", "<br>")
         
-        # 3. Fire secure API request payload over standard Port 443
-        response = requests.post(
+        # Prepare payload data dictionary
+        payload = {
+            "from": "AeroVista Airlines <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": subject,
+            "html": f"<div style='font-family: sans-serif; color: #111; padding: 20px;'>{html_content}</div>"
+        }
+        
+        data = json.dumps(payload).encode("utf-8")
+        
+        # 3. Build secure urllib Request over standard Port 443 HTTPS
+        req = urllib.request.Request(
             "https://api.resend.com/emails",
+            data=data,
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             },
-            json={
-                "from": "AeroVista Airlines <onboarding@resend.dev>",
-                "to": to_email,
-                "subject": subject,
-                "html": f"<div style='font-family: sans-serif; color: #111; padding: 20px;'>{html_content}</div>",
-            },
-            timeout=10
+            method="POST"
         )
         
-        # 4. Handle response verification validation
-        if response.status_code in (200, 201):
-            log_entry = {
-                "id": gen_id(),
-                "to_email": to_email,
-                "subject": subject,
-                "category": category,
-                "status": "sent",
-                "error_message": None,
-                "created_at": now_iso,
-                "sent_at": now_iso,
-                "has_attachments": bool(attachments),
-                "attachment_count": len(attachments) if attachments else 0
-            }
-            logger.info(f"Email successfully dispatched to {to_email} via Resend API API.")
-        else:
-            error_msg = f"API Error Code {response.status_code}: {response.text}"
-            log_entry = {
-                "id": gen_id(),
-                "to_email": to_email,
-                "subject": subject,
-                "category": category,
-                "status": "failed",
-                "error_message": error_msg,
-                "created_at": now_iso,
-                "sent_at": None,
-                "has_attachments": bool(attachments),
-                "attachment_count": len(attachments) if attachments else 0
-            }
-            logger.error(f"Resend communication pipeline failure: {error_msg}")
-            
+        # 4. Fire network request safely
+        with urllib.request.urlopen(req, timeout=10) as response:
+            res_body = response.read().decode("utf-8")
+            if response.status in (200, 201, 202):
+                log_entry = {
+                    "id": gen_id(), "to_email": to_email, "subject": subject, "category": category,
+                    "status": "sent", "error_message": None, "created_at": now_iso, "sent_at": now_iso,
+                    "has_attachments": bool(attachments), "attachment_count": len(attachments) if attachments else 0
+                }
+                logger.info(f"Email successfully dispatched to {to_email} via Resend HTTP API.")
+            else:
+                raise Exception(f"Unexpected status code {response.status}: {res_body}")
+                
+    except urllib.error.HTTPError as e:
+        error_text = e.read().decode("utf-8")
+        log_entry = {
+            "id": gen_id(), "to_email": to_email, "subject": subject, "category": category,
+            "status": "failed", "error_message": f"HTTP Error {e.code}: {error_text}", "created_at": now_iso,
+            "sent_at": None, "has_attachments": bool(attachments), "attachment_count": len(attachments) if attachments else 0
+        }
+        logger.error(f"Resend HTTP pipeline failure: {error_text}")
     except Exception as e:
         log_entry = {
-            "id": gen_id(),
-            "to_email": to_email,
-            "subject": subject,
-            "category": category,
-            "status": "failed",
-            "error_message": f"Network exception layer error: {str(e)}",
-            "created_at": now_iso,
-            "sent_at": None,
-            "has_attachments": bool(attachments),
-            "attachment_count": len(attachments) if attachments else 0
+            "id": gen_id(), "to_email": to_email, "subject": subject, "category": category,
+            "status": "failed", "error_message": f"Network exception layer error: {str(e)}", "created_at": now_iso,
+            "sent_at": None, "has_attachments": bool(attachments), "attachment_count": len(attachments) if attachments else 0
         }
         logger.exception("Outbound email processing encountered an unexpected trace error.")
 
-    # 5. Commit record status inside database document storage tracking collection
+    # 5. Commit record status inside database tracking collection
     await db.email_logs.insert_one(log_entry)
     return log_entry
 
