@@ -7,12 +7,16 @@ export default function Destinations() {
   const [airports, setAirports] = useState([]);
   const [q, setQ] = useState("");
   useEffect(() => { api.get("/airports").then((r) => setAirports(r.data)); }, []);
-
-  const filtered = airports.filter((a) => {
-    const s = q.toLowerCase();
-    return !q || a.city.toLowerCase().includes(s) || a.country.toLowerCase().includes(s) || a.iata.toLowerCase().includes(s);
-  });
-
+  
+const filtered = Array.isArray(airports) 
+    ? airports.filter((a) => {
+        const s = q.toLowerCase();
+        return !q || 
+               (a.city && a.city.toLowerCase().includes(s)) || 
+               (a.country && a.country.toLowerCase().includes(s)) || 
+               (a.iata && a.iata.toLowerCase().includes(s));
+      })
+    : [];
   return (
     <PageShell title="Destinations" subtitle="120+ destinations across 6 continents." testId="destinations-page"
       bgUrl="https://images.pexels.com/photos/18280158/pexels-photo-18280158.jpeg?auto=compress&cs=tinysrgb&w=1920">
