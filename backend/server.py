@@ -335,15 +335,84 @@ async def search_flights(req: FlightSearchReq):
         "destination": req.destination.upper(),
         "departure_date": req.departure_date,
     }
+    
+    # 1. Try to find pre-seeded database matches for this specific date first
     flights = await db.flights.find(query, PROJECT_NO_ID).sort("departure_time", 1).to_list(100)
-    # Apply dynamic pricing per flight
+    
+    # 2. GUARANTEE FALLBACK BOOSTER: If less than 3 flights exist for this date, dynamically generate them!
+    if len(flights) < 3:
+        # Fetch template flights for this specific city-pair to keep metadata realistic
+        templates = await db.flights.find({
+            "origin": req.origin.upper(),
+            "destination": req.destination.upper()
+        }, PROJECT_NO_ID).to_list(10)
+        
+        # Absolute safety net: if no templates exist for this route yet, copy general ones
+        if not templates:
+            templates = await db.flights.find({}, PROJECT_NO_ID).limit(5).to_list(5)
+
+        # Determine how many flights are needed to ensure a rich list of 3-5 options
+        target_count = random.randint(3, 5)
+        needed = target_count - len(flights)
+        
+        for i in range(needed):
+            if not templates:
+                break
+            # Pick a random template and modify its flight details on the fly
+            tpl = random.choice(templates)
+            
+            # Recompute mock departure and arrival timestamps based on user requested date
+            try:
+                search_dt = datetime.fromisoformat(req.departure_date)
+            except Exception:
+                search_dt = datetime.now(timezone.utc)
+                
+            mock_hour = random.randint(5, 22)
+            mock_minute = random.choice([0, 15, 30, 45])
+            dep_iso = search_dt.replace(hour=mock_hour, minute=mock_minute, second=0, microsecond=0)
+            arr_iso = dep_iso + timedelta(minutes=tpl.get("duration_mins", 120))
+            
+            mock_flight = {
+                "id": f"mock-{gen_id()}",
+                "flight_number": f"AV{random.randint(1000, 9999)}",
+                "origin": req.origin.upper(),
+                "origin_city": tpl.get("origin_city", req.origin.upper()),
+                "destination": req.destination.upper(),
+                "destination_city": tpl.get("destination_city", req.destination.upper()),
+                "departure_date": req.departure_date,
+                "departure_time": dep_iso.strftime("%H:%M"),
+                "arrival_date": arr_iso.date().isoformat(),
+                "arrival_time": arr_iso.strftime("%H:%M"),
+                "departure_iso": dep_iso.isoformat(),
+                "arrival_iso": arr_iso.isoformat(),
+                "duration_mins": tpl.get("duration_mins", 120),
+                "duration": tpl.get("duration", "2h 00m"),
+                "aircraft": tpl.get("aircraft", "Boeing 787-9 Dreamliner"),
+                "aircraft_id": tpl.get("aircraft_id", gen_id()),
+                "terminal": random.choice(["T1", "T2", "T3"]),
+                "gate": random.choice(["A12", "B07", "C22", "D15", "E03"]),
+                "boarding_time": (dep_iso - timedelta(minutes=40)).strftime("%H:%M"),
+                "base_price": tpl.get("base_price", 4599),
+                "total_seats": tpl.get("total_seats", 180),
+                "available_seats": random.randint(10, 60),
+                "status": "scheduled",
+                "pilot_id": tpl.get("pilot_id", ""),
+                "crew_ids": tpl.get("crew_ids", []),
+            }
+            flights.append(mock_flight)
+            
+        # Re-sort everything by departure time so the generated flights interleave nicely
+        flights.sort(key=lambda x: x["departure_time"])
+
+    # 3. Apply dynamic luxury class multipliers and price calculation algorithms
     enriched = []
     for f in flights:
         dep_dt = datetime.fromisoformat(f["departure_iso"])
         ratio = (f.get("available_seats", 1) or 1) / max(1, f.get("total_seats", 1))
-        # cabin multiplier
+        
         mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
         base = f["base_price"] * mult
+        
         price, reasons = _calc_dynamic_price(base, dep_dt, ratio)
         f["price"] = price
         f["price_reasons"] = reasons
@@ -1053,7 +1122,7 @@ async def startup_event():
     # Schedule the pre-departure upsell scanner to run every hour
     if not scheduler.running:
         scheduler.add_job(_scan_and_send_upsells, "interval", hours=1, id="upsell_scan",
-                         coalesce=True, max_instances=1, replace_existing=True)
+                          coalesce=True, max_instances=1, replace_existing=True)
         scheduler.start()
         logger.info("Started APScheduler with hourly pre-departure upsell scan")
 
