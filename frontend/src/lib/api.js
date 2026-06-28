@@ -1,9 +1,10 @@
 import axios from "axios";
 
-
-
+// Look closely: BASE_URL is defined here...
 const BASE_URL = import.meta.env.VITE_API_URL || "https://aerovista.onrender.com";
-export const API = `${BACKEND_URL}/api`;
+
+// ...And now we are using BASE_URL here to build the API endpoint path string!
+export const API = `${BASE_URL}/api`;
 
 export const api = axios.create({ baseURL: API });
 
