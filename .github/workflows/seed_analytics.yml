@@ -1,12 +1,15 @@
 name: Populate Analytical Flight Data
 
 on:
-  workflow_dispatch: # Allows you to trigger this manually with a single click!
+  workflow_dispatch:
 
 jobs:
   seed-data:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -15,14 +18,14 @@ jobs:
       - name: Install Drivers
         run: pip install pymongo
 
-      - name: Run Analytical Population Script
+      - name: Create Temporary Script File
         run: |
+          cat << 'EOF' > run_seed.py
           import random
           import secrets
           from datetime import datetime, timedelta, timezone
           from pymongo import MongoClient
 
-          # Secure connection to your live database instance
           MONGO_URL = "mongodb+srv://shahvishva23_db_user:9xDmjpncMCRlTl7z@aerovista.vuqa6t4.mongodb.net/?retryWrites=true&w=majority"
           client = MongoClient(MONGO_URL)
           db = client["aerovista"]
@@ -57,7 +60,7 @@ jobs:
               duration_mins = random.randint(120, 480)
               arr_dt = dep_dt + timedelta(minutes=duration_mins)
               
-              is_weekend = dep_dt.weekday() in (4, 5, 6) # Fri, Sat, Sun tracking
+              is_weekend = dep_dt.weekday() in (4, 5, 6)
               is_holiday = date_str in holidays
               is_festival = any(abs((dep_dt.date() - datetime.fromisoformat(f).date()).days) <= 2 for f in festivals)
               
@@ -97,4 +100,7 @@ jobs:
 
           db.flights.insert_many(mock_flights)
           print("✅ 50 Analytical Records successfully injected via cloud action pipeline!")
-        shell: python
+          EOF
+
+      - name: Run Analytical Population Script
+        run: python run_seed.py
