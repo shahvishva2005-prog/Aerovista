@@ -15,10 +15,12 @@ jobs:
       - name: Install Drivers
         run: pip install pymongo
 
-      - name: Execute Script Engine
+      - name: Write Script File
         run: |
-          python -c '
-          import random, secrets, json, urllib.request, urllib.error
+          cat << 'EOF' > seed.py
+          import random
+          import secrets
+          import json
           from datetime import datetime, timedelta, timezone
           from pymongo import MongoClient
 
@@ -60,5 +62,8 @@ jobs:
               })
 
           db.flights.insert_many(mock_flights)
-          print("✅ 50 Analytics Records successfully written to Atlas Database cluster!")
-          '
+          print("✅ Data seed completed successfully!")
+          EOF
+
+      - name: Run Script Engine
+        run: python seed.py
