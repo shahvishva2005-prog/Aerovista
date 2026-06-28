@@ -1053,6 +1053,14 @@ async def startup_event():
     # Schedule the pre-departure upsell scanner to run every hour
     if not scheduler.running:
         scheduler.add_job(_scan_and_send_upsells, "interval", hours=1, id="upsell_scan",
-                          coalesce=True, max_instances=1, replace_existing=True)
+                         coalesce=True, max_instances=1, replace_existing=True)
         scheduler.start()
         logger.info("Started APScheduler with hourly pre-departure upsell scan")
+
+
+# ===== Production Entrypoint Block =====
+if __name__ == "__main__":
+    import uvicorn
+    # Bind to port assigned dynamically by Render or fall back to 10000 locally
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False)
