@@ -17,8 +17,8 @@ export default function Careers() {
       <div className="grid lg:grid-cols-3 gap-8">
         <aside className="space-y-4">
           <div className="glass-light rounded-2xl p-6">
-            <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-3">Why AeroVista</div>
-            <ul className="space-y-2 text-white/75 text-sm font-light">
+            <div className="text-amber-700 text-[10px] tracking-[0.3em] uppercase mb-3">Why AeroVista</div>
+            <ul className="space-y-2 text-[#0B132B]/75 text-sm font-light">
               <li>• Global mobility across 120+ destinations</li>
               <li>• Best-in-class training academy</li>
               <li>• Industry-leading SkyChip benefits</li>
@@ -30,8 +30,8 @@ export default function Careers() {
           {JOBS.map((j, i) => (
             <div key={i} className="glass-light rounded-2xl p-6 flex items-center justify-between" data-testid={`job-${i}`}>
               <div>
-                <h3 className="font-serif-display text-xl text-white">{j.title}</h3>
-                <div className="text-white/55 text-xs mt-1">{j.team} • {j.loc} • {j.type}</div>
+                <h3 className="font-serif-display text-xl text-[#0B132B]">{j.title}</h3>
+                <div className="text-[#0B132B]/60 text-xs mt-1">{j.team} • {j.loc} • {j.type}</div>
               </div>
               <button className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold px-5 py-2 rounded-full text-sm transition">Apply</button>
             </div>

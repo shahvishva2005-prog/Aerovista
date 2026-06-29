@@ -32,9 +32,9 @@ export default function Register() {
         <img src={HERO} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#0B132B]/95 via-[#0B132B]/60 to-transparent" />
         <div className="absolute inset-0 p-16 flex flex-col justify-end">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Join SkyChip</div>
+          <div className="text-amber-300 text-xs tracking-[0.3em] uppercase mb-4">Join SkyChip</div>
           <h2 className="font-serif-display text-5xl text-white leading-tight">Begin your journey above the clouds.</h2>
-          <p className="text-white/65 mt-3 max-w-md">Earn points on every flight, redeem on upgrades, hotels, and signature experiences.</p>
+          <p className="text-white/75 mt-3 max-w-md">Earn points on every flight, redeem on upgrades, hotels, and signature experiences.</p>
         </div>
       </div>
 
@@ -74,11 +74,11 @@ export default function Register() {
 function Field({ icon: Icon, label, value, onChange, type = "text", testId }) {
   return (
     <label className="block">
-      <span className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">{label}</span>
+      <span className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/55 mb-1.5 block">{label}</span>
       <div className="relative">
-        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600" />
         <input type={type} required value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}
-          className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3.5 text-white text-sm focus:border-amber-400 outline-none" />
+          className="w-full bg-white border border-slate-300 rounded-lg pl-10 pr-4 py-3.5 text-[#0B132B] text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none transition" />
       </div>
     </label>
   );

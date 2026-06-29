@@ -196,25 +196,47 @@ async def admin_seed(force: bool = False):
         ("HYD", "DEL"), ("MAA", "BOM"), ("BLR", "DEL"), ("DEL", "CDG"), ("BOM", "FRA"),
         ("DEL", "HKG"), ("BOM", "DOH"), ("DEL", "AUH"), ("BLR", "BOM"), ("CCU", "DEL"),
     ]
+    # Indian airport set for domestic-vs-international classification
+    INDIAN_AIRPORTS = {
+        "DEL", "BOM", "BLR", "MAA", "HYD", "CCU", "GOI", "COK", "AMD", "PNQ",
+        "JAI", "LKO", "TRV", "IXC", "GAU", "PAT", "NAG", "IXM", "BBI", "IDR",
+        "IXR", "VNS", "SXR", "IXJ", "DED",
+    }
+    # Layover hubs (preferred for international stop-overs)
+    LAYOVER_HUBS = ["DXB", "AUH"]
     # Departure-time pool spread through the day
     time_pool = [(5, 30), (6, 45), (7, 30), (8, 15), (9, 0), (10, 30), (11, 45),
                  (13, 15), (14, 30), (15, 45), (17, 0), (18, 30), (19, 45),
                  (21, 0), (22, 30)]
     flights = []
     for r_idx, (org, dst) in enumerate(routes):
-        # Each route gets a random number of daily schedules between 4 and 15
-        schedules_per_day = random.randint(4, 15)
-        # Pick that many unique time slots
-        route_times = random.sample(time_pool, schedules_per_day)
-        route_times.sort()
+        is_domestic = org in INDIAN_AIRPORTS and dst in INDIAN_AIRPORTS
+        # Pick a hub that isn't either endpoint
+        hub = next((h for h in LAYOVER_HUBS if h not in (org, dst)), "DXB")
+        hub_air = airport_by_iata(hub) or {}
+
+        if is_domestic:
+            direct_count = random.randint(3, 5)
+            layover_count = 0
+        else:
+            direct_count = 3
+            layover_count = 5
+
+        direct_times = random.sample(time_pool, min(direct_count, len(time_pool)))
+        direct_times.sort()
+        remaining = [t for t in time_pool if t not in direct_times]
+        layover_times = random.sample(remaining, min(layover_count, len(remaining)))
+        layover_times.sort()
+
         for d in range(0, 30):
-            for s_idx, sched in enumerate(route_times):
+            # ---- Direct flights ----
+            for s_idx, sched in enumerate(direct_times):
                 dep_dt = (now + timedelta(days=d)).replace(hour=sched[0], minute=sched[1], second=0, microsecond=0)
                 duration = _haversine_minutes(org, dst)
                 arr_dt = dep_dt + timedelta(minutes=duration)
                 aircraft = random.choice(aircraft_docs)
                 base = random.choice([3499, 4299, 5499, 7299, 8999, 12499, 18999])
-                if "DXB" in (org, dst) or "LHR" in (org, dst) or "JFK" in (org, dst) or "SIN" in (org, dst):
+                if not is_domestic:
                     base = random.choice([18999, 24999, 32999, 42999])
                 o_air = airport_by_iata(org) or {}
                 d_air = airport_by_iata(dst) or {}
@@ -231,6 +253,59 @@ async def admin_seed(force: bool = False):
                     "arrival_iso": arr_dt.isoformat(),
                     "duration_mins": duration,
                     "duration": _fmt_duration(duration),
+                    "stops": 0,
+                    "layover": None,
+                    "aircraft": aircraft["model"],
+                    "aircraft_id": aircraft["id"],
+                    "terminal": random.choice(["T1", "T2", "T3"]),
+                    "gate": random.choice(["A12", "B07", "C22", "D15", "E03"]),
+                    "boarding_time": (dep_dt - timedelta(minutes=40)).strftime("%H:%M"),
+                    "base_price": base,
+                    "total_seats": aircraft["capacity"],
+                    "available_seats": aircraft["capacity"] - random.randint(0, aircraft["capacity"] // 3),
+                    "status": "scheduled",
+                    "pilot_id": random.choice(pilots)["id"],
+                    "crew_ids": [c["id"] for c in random.sample(crew_docs, 4)],
+                }
+                flights.append(flight)
+
+            # ---- Layover flights (international only) ----
+            for s_idx, sched in enumerate(layover_times):
+                dep_dt = (now + timedelta(days=d)).replace(hour=sched[0], minute=sched[1], second=0, microsecond=0)
+                leg1 = _haversine_minutes(org, hub)
+                leg2 = _haversine_minutes(hub, dst)
+                layover_mins = random.choice([90, 120, 150, 180, 210])
+                total_dur = leg1 + layover_mins + leg2
+                arr_dt = dep_dt + timedelta(minutes=total_dur)
+                hub_arr = dep_dt + timedelta(minutes=leg1)
+                hub_dep = hub_arr + timedelta(minutes=layover_mins)
+                aircraft = random.choice(aircraft_docs)
+                # Layover fares slightly cheaper than direct international
+                base = random.choice([14999, 18999, 22999, 28999])
+                o_air = airport_by_iata(org) or {}
+                d_air = airport_by_iata(dst) or {}
+                flight = {
+                    "id": gen_id(),
+                    "flight_number": f"AV{2000 + r_idx * 50 + d * 3 + s_idx:04d}",
+                    "origin": org, "origin_city": o_air.get("city", org),
+                    "destination": dst, "destination_city": d_air.get("city", dst),
+                    "departure_date": dep_dt.date().isoformat(),
+                    "departure_time": dep_dt.strftime("%H:%M"),
+                    "arrival_date": arr_dt.date().isoformat(),
+                    "arrival_time": arr_dt.strftime("%H:%M"),
+                    "departure_iso": dep_dt.isoformat(),
+                    "arrival_iso": arr_dt.isoformat(),
+                    "duration_mins": total_dur,
+                    "duration": _fmt_duration(total_dur),
+                    "stops": 1,
+                    "layover": {
+                        "airport": hub,
+                        "city": hub_air.get("city", hub),
+                        "arrival_time": hub_arr.strftime("%H:%M"),
+                        "departure_time": hub_dep.strftime("%H:%M"),
+                        "layover_mins": layover_mins,
+                        "layover_str": _fmt_duration(layover_mins),
+                    },
                     "aircraft": aircraft["model"],
                     "aircraft_id": aircraft["id"],
                     "terminal": random.choice(["T1", "T2", "T3"]),
@@ -314,7 +389,24 @@ async def register(req: RegisterReq):
 
 @api.post("/auth/login", response_model=TokenRes)
 async def login(req: LoginReq):
-    user = await db.users.find_one({"email": req.email.lower()})
+    # Accept email OR mobile (with or without country code / spaces)
+    identifier = (req.email or req.mobile or "").strip()
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Provide email or mobile number")
+    # Decide lookup field
+    user = None
+    if "@" in identifier:
+        user = await db.users.find_one({"email": identifier.lower()})
+    else:
+        # Normalize mobile: keep digits only for matching
+        digits = "".join(ch for ch in identifier if ch.isdigit())
+        if len(digits) < 7:
+            raise HTTPException(status_code=400, detail="Invalid mobile number")
+        # Try exact match first, then suffix match (handles +91 prefix variants)
+        user = await db.users.find_one({"mobile": identifier})
+        if not user:
+            tail = digits[-10:]
+            user = await db.users.find_one({"mobile": {"$regex": f"{tail}$"}})
     if not user or not verify_password(req.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token({"sub": user["id"], "role": user["role"]})
@@ -713,6 +805,51 @@ async def admin_dash(user=Depends(require_roles("admin"))):
         "top_routes": [{"route": f"{r['_id']['o']}-{r['_id']['d']}", "count": r["count"],
                         "revenue": round(r["revenue"], 2)} for r in top_routes],
     }
+
+
+@api.get("/admin/charts/bookings-trend")
+async def admin_bookings_trend(days: int = 30, user=Depends(require_roles("admin"))):
+    """Bookings count per day for the last N days."""
+    today = datetime.now(timezone.utc).date()
+    series = []
+    for i in range(days, -1, -1):
+        d = (today - timedelta(days=i)).isoformat()
+        count = await db.bookings.count_documents({"booked_at": {"$regex": f"^{d}"}})
+        series.append({"date": d, "bookings": count})
+    return series
+
+
+@api.get("/admin/charts/occupancy")
+async def admin_occupancy(user=Depends(require_roles("admin"))):
+    """Average occupancy across upcoming flights, plus per-cabin-class booking split."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    pipe_occ = [
+        {"$match": {"departure_iso": {"$gte": now_iso}}},
+        {"$project": {
+            "occupied": {"$subtract": ["$total_seats", "$available_seats"]},
+            "total": "$total_seats",
+        }},
+        {"$group": {"_id": None, "occupied": {"$sum": "$occupied"}, "total": {"$sum": "$total"}}},
+    ]
+    occ_agg = await db.flights.aggregate(pipe_occ).to_list(1)
+    occ_pct = 0
+    if occ_agg and occ_agg[0]["total"]:
+        occ_pct = round(occ_agg[0]["occupied"] / occ_agg[0]["total"] * 100, 1)
+
+    # Per cabin class booking split
+    pipe_class = [
+        {"$group": {"_id": "$cabin_class", "count": {"$sum": 1}, "revenue": {"$sum": "$fare.total"}}},
+    ]
+    cls_agg = await db.bookings.aggregate(pipe_class).to_list(10)
+    cabin_split = [{"class": c["_id"] or "economy", "count": c["count"], "revenue": round(c["revenue"] or 0, 2)}
+                   for c in cls_agg]
+
+    # Refund status split
+    pipe_ref = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+    ref_agg = await db.refunds.aggregate(pipe_ref).to_list(10)
+    refund_split = [{"status": r["_id"], "count": r["count"]} for r in ref_agg]
+
+    return {"occupancy_pct": occ_pct, "cabin_split": cabin_split, "refund_split": refund_split}
 
 
 @api.get("/admin/bookings")

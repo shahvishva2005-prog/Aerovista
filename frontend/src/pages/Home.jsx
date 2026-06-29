@@ -6,7 +6,7 @@ import FlightSearchWidget from "../components/FlightSearchWidget";
 import WorldMap from "../components/WorldMap";
 import { api } from "../lib/api";
 
-const HERO_IMG = "https://images.unsplash.com/photo-1687885461404-5ab0c1aa4ad9?crop=entropy&cs=srgb&fm=jpg&w=1920&q=85";
+const HERO_IMG = "https://images.unsplash.com/photo-1583416750470-965b2707b355?w=1920&q=85";
 
 const DESTINATIONS = [
   { code: "DXB", city: "Dubai", country: "United Arab Emirates", img: "https://images.pexels.com/photos/18341554/pexels-photo-18341554.jpeg?auto=compress&cs=tinysrgb&w=940", span: "md:col-span-5 md:row-span-2" },
@@ -59,7 +59,7 @@ export default function Home() {
         <div className="relative flex-1 flex items-center pt-20">
           <div className="max-w-[1400px] mx-auto w-full px-6 lg:px-12 py-16">
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9 }}>
-              <div className="text-amber-400 text-xs tracking-[0.4em] uppercase mb-5">AeroVista Airlines • Est. 2025</div>
+              <div className="text-amber-300 text-xs tracking-[0.4em] uppercase mb-5">AeroVista Airlines • Est. 2025</div>
               <h1 className="font-serif-display text-5xl md:text-7xl lg:text-8xl font-light leading-[1.05] text-white tracking-tight max-w-5xl">
                 Experience <span className="av-text-gold-grad italic">World-Class</span><br />Aviation
               </h1>
@@ -73,12 +73,12 @@ export default function Home() {
                 Over 120 destinations worldwide, a fleet of 85+ modern aircraft, crafted for travellers who expect more.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/search" data-testid="hero-book-flight" className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold px-7 py-3.5 rounded-full inline-flex items-center gap-2 transition">
+                <Link to="/search" data-testid="hero-book-flight" className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold px-7 py-3.5 rounded-full inline-flex items-center gap-2 transition shadow-lg hover:shadow-xl">
                   Book Flight <ArrowRight className="w-4 h-4" />
                 </Link>
-                <Link to="/track" data-testid="hero-track-flight" className="glass-light hover:bg-white/15 text-white px-7 py-3.5 rounded-full transition">Track Flight</Link>
-                <Link to="/checkin" data-testid="hero-checkin" className="glass-light hover:bg-white/15 text-white px-7 py-3.5 rounded-full transition">Web Check-In</Link>
-                <Link to="/offers" data-testid="hero-offers" className="glass-light hover:bg-white/15 text-white px-7 py-3.5 rounded-full transition">View Offers</Link>
+                <Link to="/track" data-testid="hero-track-flight" className="bg-white/15 hover:bg-white/25 backdrop-blur text-white px-7 py-3.5 rounded-full transition border border-white/20">Track Flight</Link>
+                <Link to="/checkin" data-testid="hero-checkin" className="bg-white/15 hover:bg-white/25 backdrop-blur text-white px-7 py-3.5 rounded-full transition border border-white/20">Web Check-In</Link>
+                <Link to="/offers" data-testid="hero-offers" className="bg-white/15 hover:bg-white/25 backdrop-blur text-white px-7 py-3.5 rounded-full transition border border-white/20">View Offers</Link>
               </div>
             </motion.div>
           </div>
@@ -91,15 +91,15 @@ export default function Home() {
       </section>
 
       {/* STATS */}
-      <section className="av-section-pad bg-[#0B132B]">
+      <section className="av-section-pad av-bg-cream">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">By the numbers</div>
+          <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-4">By the numbers</div>
           <div className="flex flex-wrap items-end justify-between gap-4 mb-3">
-            <h2 className="font-serif-display text-4xl md:text-5xl text-white max-w-3xl font-light">A scale that speaks for itself.</h2>
-            <p className="font-serif-display italic text-amber-300 text-lg">Connecting Horizons, Delivering Excellence</p>
+            <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] max-w-3xl font-light">A scale that speaks for itself.</h2>
+            <p className="font-serif-display italic text-amber-600 text-lg">Connecting Horizons, Delivering Excellence</p>
           </div>
           <div className="av-divider-gold mb-10 max-w-[260px]" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#0B132B]/5">
             {[
               ["Passengers Served", stats.passengers || "2.5M+"],
               ["Flights Completed", stats.flights_completed || "185,000+"],
@@ -110,9 +110,9 @@ export default function Home() {
               ["Destinations", stats.destinations || "120+"],
               ["Satisfaction", stats.satisfaction || "98.7%"],
             ].map(([label, val]) => (
-              <div key={label} className="bg-[#0B132B] p-8 group hover:bg-[#0F1A3A] transition">
+              <div key={label} className="av-bg-cream p-8 group hover:bg-[#FFFFFF] transition">
                 <div className="font-serif-display text-4xl md:text-5xl av-text-gold-grad font-light mb-2">{val}</div>
-                <div className="text-white/60 text-xs tracking-[0.2em] uppercase">{label}</div>
+                <div className="text-[#0B132B]/65 text-xs tracking-[0.2em] uppercase">{label}</div>
               </div>
             ))}
           </div>
@@ -120,14 +120,14 @@ export default function Home() {
       </section>
 
       {/* DESTINATIONS - Bento */}
-      <section className="av-section-pad bg-[#080E21]">
+      <section className="av-section-pad bg-[#F1ECE0]">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-12">
             <div>
-              <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Popular Destinations</div>
-              <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light">Where will you go next?</h2>
+              <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-4">Popular Destinations</div>
+              <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light">Where will you go next?</h2>
             </div>
-            <Link to="/destinations" className="text-amber-400 hover:text-amber-300 inline-flex items-center gap-2">
+            <Link to="/destinations" className="text-amber-700 hover:text-amber-600 inline-flex items-center gap-2">
               All destinations <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -142,10 +142,10 @@ export default function Home() {
                 <div className="absolute bottom-0 left-0 p-6">
                   <div className="text-amber-300 text-[10px] tracking-[0.3em] uppercase mb-1">{d.country}</div>
                   <div className="font-serif-display text-3xl text-white">{d.city}</div>
-                  <div className="text-white/50 text-xs mt-1 font-mono-aero">{d.code}</div>
+                  <div className="text-white/65 text-xs mt-1 font-mono-aero">{d.code}</div>
                 </div>
-                <div className="absolute top-4 right-4 w-9 h-9 rounded-full glass-light grid place-items-center opacity-0 group-hover:opacity-100 transition">
-                  <ArrowRight className="w-4 h-4 text-amber-400" />
+                <div className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 backdrop-blur grid place-items-center opacity-0 group-hover:opacity-100 transition">
+                  <ArrowRight className="w-4 h-4 text-white" />
                 </div>
               </Link>
             ))}
@@ -154,17 +154,17 @@ export default function Home() {
       </section>
 
       {/* OFFERS */}
-      <section className="av-section-pad bg-[#0B132B]">
+      <section className="av-section-pad av-bg-cream">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Special Offers</div>
-          <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light mb-12">Curated savings for our guests.</h2>
+          <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-4">Special Offers</div>
+          <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light mb-12">Curated savings for our guests.</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {OFFERS.map((o) => (
-              <div key={o.title} className={`rounded-2xl p-7 bg-gradient-to-br ${o.color} border border-white/10 hover:border-amber-400/50 transition`}>
-                <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-4">{o.tag}</div>
-                <h3 className="font-serif-display text-2xl text-white mb-2">{o.title}</h3>
-                <p className="text-white/65 text-sm font-light mb-5">{o.desc}</p>
-                <div className="font-mono-aero text-xs text-amber-300 bg-amber-400/10 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
+              <div key={o.title} className={`rounded-2xl p-7 bg-gradient-to-br ${o.color} border border-[#E5E1D6] hover:border-amber-500/60 transition`}>
+                <div className="text-amber-700 text-[10px] tracking-[0.3em] uppercase mb-4">{o.tag}</div>
+                <h3 className="font-serif-display text-2xl text-[#0B132B] mb-2">{o.title}</h3>
+                <p className="text-[#0B132B]/70 text-sm font-light mb-5">{o.desc}</p>
+                <div className="font-mono-aero text-xs text-amber-600 bg-amber-400/10 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
               </div>
             ))}
           </div>
@@ -172,19 +172,19 @@ export default function Home() {
       </section>
 
       {/* FLEET */}
-      <section className="av-section-pad bg-[#080E21]">
+      <section className="av-section-pad bg-[#F1ECE0]">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Our Fleet</div>
-          <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light mb-12">Engineered for unforgettable journeys.</h2>
+          <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-4">Our Fleet</div>
+          <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light mb-12">Engineered for unforgettable journeys.</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FLEET.map((f) => (
-              <div key={f.name} className="rounded-2xl overflow-hidden bg-[#0B132B] border border-white/5 group">
+              <div key={f.name} className="rounded-2xl overflow-hidden av-bg-cream border border-[#E5E1D6] group">
                 <div className="h-48 overflow-hidden">
                   <img src={f.img} alt={f.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 </div>
                 <div className="p-6">
-                  <h3 className="font-serif-display text-xl text-white mb-2">{f.name}</h3>
-                  <p className="text-white/55 text-sm font-light">{f.desc}</p>
+                  <h3 className="font-serif-display text-xl text-[#0B132B] mb-2">{f.name}</h3>
+                  <p className="text-[#0B132B]/60 text-sm font-light">{f.desc}</p>
                 </div>
               </div>
             ))}
@@ -193,15 +193,15 @@ export default function Home() {
       </section>
 
       {/* GLOBAL ROUTE NETWORK */}
-      <section className="av-section-pad bg-[#080E21]">
+      <section className="av-section-pad bg-[#F1ECE0]">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
             <div>
-              <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Global Route Network</div>
-              <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light">A skyway that spans the planet.</h2>
-              <p className="text-white/55 mt-2 max-w-2xl font-light">Live arcs trace our most-flown corridors from our Delhi and Mumbai hubs to over 120 destinations across six continents.</p>
+              <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-4">Global Route Network</div>
+              <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light">A skyway that spans the planet.</h2>
+              <p className="text-[#0B132B]/60 mt-2 max-w-2xl font-light">Live arcs trace our most-flown corridors from our Delhi and Mumbai hubs to over 120 destinations across six continents.</p>
             </div>
-            <Link to="/destinations" className="text-amber-400 hover:text-amber-300 inline-flex items-center gap-2">
+            <Link to="/destinations" className="text-amber-700 hover:text-amber-600 inline-flex items-center gap-2">
               All destinations <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -210,10 +210,10 @@ export default function Home() {
       </section>
 
       {/* WHY US */}
-      <section className="av-section-pad bg-[#0B132B] border-y border-white/5">
+      <section className="av-section-pad av-bg-cream border-y border-[#E5E1D6]">
         <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-10">
-            <p className="font-serif-display italic text-amber-300 text-lg md:text-xl">Connecting Horizons, Delivering Excellence</p>
+            <p className="font-serif-display italic text-amber-600 text-lg md:text-xl">Connecting Horizons, Delivering Excellence</p>
             <div className="av-divider-gold mt-3 max-w-[200px] mx-auto" />
           </div>
           <div className="grid lg:grid-cols-4 gap-10">
@@ -228,8 +228,8 @@ export default function Home() {
                   <Icon className="w-5 h-5 text-[#0B132B]" />
                 </div>
                 <div>
-                  <h3 className="font-serif-display text-2xl text-white mb-2">{t}</h3>
-                  <p className="text-white/60 text-sm font-light">{d}</p>
+                  <h3 className="font-serif-display text-2xl text-[#0B132B] mb-2">{t}</h3>
+                  <p className="text-[#0B132B]/65 text-sm font-light">{d}</p>
                 </div>
               </div>
             ))}
@@ -238,22 +238,22 @@ export default function Home() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="av-section-pad bg-[#080E21]">
+      <section className="av-section-pad bg-[#F1ECE0]">
         <div className="max-w-[1400px] mx-auto">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Stories from the cabin</div>
-          <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light mb-12 max-w-3xl">
+          <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-4">Stories from the cabin</div>
+          <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light mb-12 max-w-3xl">
             Trusted by millions, beloved by frequent flyers.
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((t) => (
               <div key={t.name} className="glass-light rounded-2xl p-7">
-                <div className="flex gap-1 mb-5 text-amber-400">
+                <div className="flex gap-1 mb-5 text-amber-700">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400" />)}
                 </div>
-                <p className="text-white/80 font-light leading-relaxed mb-6">"{t.text}"</p>
+                <p className="text-[#0B132B]/80 font-light leading-relaxed mb-6">"{t.text}"</p>
                 <div>
-                  <div className="text-white font-medium">{t.name}</div>
-                  <div className="text-amber-400 text-xs">{t.role}</div>
+                  <div className="text-[#0B132B] font-medium">{t.name}</div>
+                  <div className="text-amber-700 text-xs">{t.role}</div>
                 </div>
               </div>
             ))}
@@ -262,45 +262,45 @@ export default function Home() {
       </section>
 
       {/* CTA - Mobile app */}
-      <section className="av-section-pad bg-gradient-to-br from-[#0B132B] via-[#1C2541] to-[#0B132B]">
+      <section className="av-section-pad bg-gradient-to-br from-[#FAF8F2] via-[#FFFFFF] to-[#FAF8F2]">
         <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Mobile App</div>
-            <h2 className="font-serif-display text-4xl md:text-5xl text-white font-light mb-5">
+            <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-4">Mobile App</div>
+            <h2 className="font-serif-display text-4xl md:text-5xl text-[#0B132B] font-light mb-5">
               Your sky, in your pocket.
             </h2>
-            <p className="text-white/65 font-light text-lg leading-relaxed mb-7">
+            <p className="text-[#0B132B]/70 font-light text-lg leading-relaxed mb-7">
               Manage bookings, store boarding passes, track real-time flight status, and earn SkyChip points — all in one elegant app.
             </p>
             <div className="flex gap-3">
               <div className="glass-light rounded-xl px-5 py-3 flex items-center gap-3">
-                <Plane className="w-5 h-5 text-amber-400" />
+                <Plane className="w-5 h-5 text-amber-700" />
                 <div>
-                  <div className="text-[10px] text-white/50 uppercase">Coming Soon</div>
-                  <div className="text-white text-sm">App Store</div>
+                  <div className="text-[10px] text-[#0B132B]/55 uppercase">Coming Soon</div>
+                  <div className="text-[#0B132B] text-sm">App Store</div>
                 </div>
               </div>
               <div className="glass-light rounded-xl px-5 py-3 flex items-center gap-3">
-                <Plane className="w-5 h-5 text-amber-400" />
+                <Plane className="w-5 h-5 text-amber-700" />
                 <div>
-                  <div className="text-[10px] text-white/50 uppercase">Coming Soon</div>
-                  <div className="text-white text-sm">Google Play</div>
+                  <div className="text-[10px] text-[#0B132B]/55 uppercase">Coming Soon</div>
+                  <div className="text-[#0B132B] text-sm">Google Play</div>
                 </div>
               </div>
             </div>
           </div>
           <div className="rounded-3xl glass p-10 flex items-center justify-center">
-            <div className="w-full max-w-sm aspect-[9/16] rounded-3xl bg-gradient-to-b from-[#0B132B] to-[#1C2541] border border-amber-400/30 p-6">
-              <div className="text-amber-400 text-xs tracking-[0.3em] uppercase">Boarding Pass</div>
+            <div className="w-full max-w-sm aspect-[9/16] rounded-3xl bg-gradient-to-b from-[#0B132B] to-[#1C2541] border border-amber-500/40 p-6 shadow-2xl">
+              <div className="text-amber-300 text-xs tracking-[0.3em] uppercase">Boarding Pass</div>
               <div className="font-serif-display text-3xl text-white mt-1">DEL → DXB</div>
-              <div className="text-white/50 text-xs mt-1">AV1042 • 14:30</div>
+              <div className="text-white/60 text-xs mt-1">AV1042 • 14:30</div>
               <div className="mt-8 bg-white rounded-xl aspect-square grid place-items-center">
                 <div className="w-32 h-32 bg-[#0B132B] grid place-items-center text-amber-400 text-3xl">⌘</div>
               </div>
               <div className="mt-6 flex justify-between text-white">
-                <div><div className="text-[10px] text-white/40 uppercase">Seat</div><div className="font-serif-display text-xl">12A</div></div>
-                <div><div className="text-[10px] text-white/40 uppercase">Gate</div><div className="font-serif-display text-xl">B07</div></div>
-                <div><div className="text-[10px] text-white/40 uppercase">Class</div><div className="font-serif-display text-xl">BUS</div></div>
+                <div><div className="text-[10px] text-white/50 uppercase">Seat</div><div className="font-serif-display text-xl">12A</div></div>
+                <div><div className="text-[10px] text-white/50 uppercase">Gate</div><div className="font-serif-display text-xl">B07</div></div>
+                <div><div className="text-[10px] text-white/50 uppercase">Class</div><div className="font-serif-display text-xl">BUS</div></div>
               </div>
             </div>
           </div>

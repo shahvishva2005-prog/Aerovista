@@ -1,7 +1,29 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api, fmtDate } from "../lib/api";
 import PageShell from "../components/PageShell";
 import { Plane, Search } from "lucide-react";
+
+function FlightCountdown({ departureIso }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const dep = new Date(departureIso);
+  const diff = dep - now;
+  if (diff <= 0) {
+    return <span className="text-emerald-700 font-medium">Departed / In progress</span>;
+  }
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return (
+    <span className="font-mono-aero text-amber-700" data-testid="flight-countdown">
+      {d > 0 && `${d}d `}{String(h).padStart(2, "0")}h {String(m).padStart(2, "0")}m {String(s).padStart(2, "0")}s
+    </span>
+  );
+}
 
 export default function Track() {
   const [tab, setTab] = useState("pnr");
@@ -35,7 +57,7 @@ export default function Track() {
           <div className="flex gap-2 mb-5">
             {[["pnr", "By PNR"], ["email", "By Email"], ["mobile", "By Mobile"]].map(([v, l]) => (
               <button key={v} onClick={() => setTab(v)} data-testid={`track-tab-${v}`}
-                className={`px-4 py-2 rounded-full text-sm transition ${tab === v ? "bg-amber-400 text-[#0B132B]" : "bg-white/5 text-white/70 hover:bg-white/10"}`}>{l}</button>
+                className={`px-4 py-2 rounded-full text-sm transition ${tab === v ? "bg-amber-400 text-[#0B132B]" : "bg-[#0B132B]/5 text-[#0B132B]/72 hover:bg-[#0B132B]/10"}`}>{l}</button>
             ))}
           </div>
           <div className="grid md:grid-cols-12 gap-3">
@@ -57,21 +79,25 @@ export default function Track() {
             <div key={b.id} className="glass-light rounded-2xl p-5" data-testid={`result-${b.pnr}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <Plane className="w-5 h-5 text-amber-400" />
-                  <div className="font-mono-aero text-amber-400">{b.pnr}</div>
+                  <Plane className="w-5 h-5 text-amber-700" />
+                  <div className="font-mono-aero text-amber-700">{b.pnr}</div>
                 </div>
-                <span className="text-xs px-3 py-1 rounded-full bg-amber-400/15 text-amber-300 uppercase">{b.status}</span>
+                <span className="text-xs px-3 py-1 rounded-full bg-amber-400/15 text-amber-600 uppercase">{b.status}</span>
               </div>
               <div className="grid grid-cols-3 items-center">
                 <div>
-                  <div className="font-serif-display text-2xl text-white">{b.flight_snapshot.departure_time}</div>
-                  <div className="text-white/55 text-xs">{b.flight_snapshot.origin} • {fmtDate(b.flight_snapshot.departure_date)}</div>
+                  <div className="font-serif-display text-2xl text-[#0B132B]">{b.flight_snapshot.departure_time}</div>
+                  <div className="text-[#0B132B]/60 text-xs">{b.flight_snapshot.origin} • {fmtDate(b.flight_snapshot.departure_date)}</div>
                 </div>
-                <div className="text-center text-white/55 text-xs">{b.flight_snapshot.flight_number}</div>
+                <div className="text-center text-[#0B132B]/60 text-xs">{b.flight_snapshot.flight_number}</div>
                 <div className="text-right">
-                  <div className="font-serif-display text-2xl text-white">{b.flight_snapshot.arrival_time}</div>
-                  <div className="text-white/55 text-xs">{b.flight_snapshot.destination}</div>
+                  <div className="font-serif-display text-2xl text-[#0B132B]">{b.flight_snapshot.arrival_time}</div>
+                  <div className="text-[#0B132B]/60 text-xs">{b.flight_snapshot.destination}</div>
                 </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-[#E5E1D6] flex items-center justify-between text-sm">
+                <div className="text-[#0B132B]/65">Time to departure:</div>
+                <FlightCountdown departureIso={b.flight_snapshot.departure_iso} />
               </div>
             </div>
           ))}
@@ -84,6 +110,6 @@ export default function Track() {
 function Input({ value, onChange, placeholder, type = "text", testId }) {
   return (
     <input value={value} onChange={(e) => onChange(e.target.value)} type={type} placeholder={placeholder} data-testid={testId}
-      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm focus:border-amber-400 outline-none" />
+      className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3.5 text-[#0B132B] text-sm focus:border-amber-400 outline-none" />
   );
 }

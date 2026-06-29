@@ -18,11 +18,11 @@ export default function Offers() {
       bgUrl="https://images.unsplash.com/photo-1542296332-2e4473faf563?w=1920&q=85">
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
         {OFFERS.map((o) => (
-          <div key={o.code} className="glass-light rounded-2xl p-7 border border-white/10 hover:border-amber-400/50 transition" data-testid={`offer-${o.code}`}>
-            <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-4">{o.tag}</div>
-            <h3 className="font-serif-display text-2xl text-white mb-2">{o.title}</h3>
-            <p className="text-white/65 text-sm font-light mb-5">{o.desc}</p>
-            <div className="font-mono-aero text-xs text-amber-300 bg-amber-400/10 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
+          <div key={o.code} className="glass-light rounded-2xl p-7 border border-[#E5E1D6] hover:border-amber-500/60 transition" data-testid={`offer-${o.code}`}>
+            <div className="text-amber-700 text-[10px] tracking-[0.3em] uppercase mb-4">{o.tag}</div>
+            <h3 className="font-serif-display text-2xl text-[#0B132B] mb-2">{o.title}</h3>
+            <p className="text-[#0B132B]/70 text-sm font-light mb-5">{o.desc}</p>
+            <div className="font-mono-aero text-xs text-amber-600 bg-amber-400/10 inline-block px-3 py-1 rounded-full">Code: {o.code}</div>
           </div>
         ))}
       </div>

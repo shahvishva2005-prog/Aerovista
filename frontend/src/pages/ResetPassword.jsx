@@ -32,8 +32,8 @@ export default function ResetPassword() {
         <div className="flex items-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-full av-bg-gold grid place-items-center"><Plane className="w-5 h-5 text-[#0B132B]" /></div>
           <div>
-            <div className="font-serif-display text-2xl text-white">Set a new password</div>
-            <div className="text-white/55 text-xs">Choose at least 6 characters</div>
+            <div className="font-serif-display text-2xl text-[#0B132B]">Set a new password</div>
+            <div className="text-[#0B132B]/60 text-xs">Choose at least 6 characters</div>
           </div>
         </div>
 
@@ -42,8 +42,8 @@ export default function ResetPassword() {
         ) : done ? (
           <div className="glass-light rounded-2xl p-8 text-center border border-emerald-400/30">
             <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-            <div className="text-white font-serif-display text-2xl mb-1">Password updated</div>
-            <p className="text-white/65 text-sm">Redirecting to sign-in…</p>
+            <div className="text-[#0B132B] font-serif-display text-2xl mb-1">Password updated</div>
+            <p className="text-[#0B132B]/70 text-sm">Redirecting to sign-in…</p>
           </div>
         ) : (
           <form onSubmit={submit}>
@@ -55,8 +55,8 @@ export default function ResetPassword() {
               className="w-full mt-6 bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold py-3.5 rounded-full transition disabled:opacity-60">
               {busy ? "Updating…" : "Update Password"}
             </button>
-            <div className="text-center text-white/60 text-sm mt-5">
-              <Link to="/login" className="text-amber-400 hover:text-amber-300">← Back to sign in</Link>
+            <div className="text-center text-[#0B132B]/65 text-sm mt-5">
+              <Link to="/login" className="text-amber-700 hover:text-amber-600">← Back to sign in</Link>
             </div>
           </form>
         )}

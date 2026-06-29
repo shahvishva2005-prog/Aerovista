@@ -40,14 +40,14 @@ export default function CheckIn() {
         <div className="glass-light rounded-2xl p-6">
           <div className="grid md:grid-cols-12 gap-3">
             <div className="md:col-span-5">
-              <label className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">PNR</label>
+              <label className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">PNR</label>
               <input value={pnr} onChange={(e) => setPnr(e.target.value)} data-testid="checkin-pnr"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm focus:border-amber-400 outline-none" />
+                className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3.5 text-[#0B132B] text-sm focus:border-amber-400 outline-none" />
             </div>
             <div className="md:col-span-5">
-              <label className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">Last Name</label>
+              <label className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">Last Name</label>
               <input value={lastName} onChange={(e) => setLastName(e.target.value)} data-testid="checkin-lastname"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm focus:border-amber-400 outline-none" />
+                className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3.5 text-[#0B132B] text-sm focus:border-amber-400 outline-none" />
             </div>
             <button onClick={submit} disabled={busy} data-testid="checkin-submit"
               className="md:col-span-2 bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold rounded-lg inline-flex items-center justify-center disabled:opacity-60">
@@ -63,15 +63,15 @@ export default function CheckIn() {
               <CheckCircle2 className="w-7 h-7 text-emerald-400" />
               <div>
                 <div className="text-emerald-300 text-xs tracking-[0.3em] uppercase">Checked-in</div>
-                <h3 className="font-serif-display text-2xl text-white">PNR {result.pnr}</h3>
+                <h3 className="font-serif-display text-2xl text-[#0B132B]">PNR {result.pnr}</h3>
               </div>
             </div>
             <div className="space-y-2">
               {result.passengers.map((p, i) => (
-                <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+                <div key={i} className="flex items-center justify-between bg-[#0B132B]/5 p-3 rounded-lg">
                   <div>
-                    <div className="text-white text-sm">{p.title} {p.first_name} {p.last_name}</div>
-                    <div className="text-white/55 text-xs">Seat <span className="text-amber-400 font-mono-aero">{result.seats[i] || "TBA"}</span></div>
+                    <div className="text-[#0B132B] text-sm">{p.title} {p.first_name} {p.last_name}</div>
+                    <div className="text-[#0B132B]/60 text-xs">Seat <span className="text-amber-700 font-mono-aero">{result.seats[i] || "TBA"}</span></div>
                   </div>
                   <button onClick={() => downloadBP(i)} data-testid={`download-bp-${i}`}
                     className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-medium px-4 py-2 rounded-full text-xs inline-flex items-center gap-2">

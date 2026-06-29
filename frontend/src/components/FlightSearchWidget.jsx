@@ -37,7 +37,7 @@ export default function FlightSearchWidget({ variant = "hero" }) {
           <button key={o.v} data-testid={`trip-${o.v}`}
             onClick={() => setTripType(o.v)}
             className={`px-5 py-2 rounded-full text-sm font-medium transition ${
-              tripType === o.v ? "bg-amber-400 text-[#0B132B]" : "bg-white/5 text-white/80 hover:bg-white/10"}`}>
+              tripType === o.v ? "bg-amber-400 text-[#0B132B]" : "bg-[#0B132B]/5 text-[#0B132B]/80 hover:bg-[#0B132B]/10"}`}>
             {o.label}
           </button>
         ))}
@@ -45,7 +45,7 @@ export default function FlightSearchWidget({ variant = "hero" }) {
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
         <div className="md:col-span-3">
-          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">From</label>
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-700/90 mb-2 block">From</label>
           <AirportSelect testId="from-airport" value={origin} onChange={setOrigin} placeholder="Origin" />
         </div>
 
@@ -57,38 +57,38 @@ export default function FlightSearchWidget({ variant = "hero" }) {
         </div>
 
         <div className="md:col-span-3">
-          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">To</label>
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-700/90 mb-2 block">To</label>
           <AirportSelect testId="to-airport" value={destination} onChange={setDestination} placeholder="Destination" />
         </div>
 
         <div className="md:col-span-2">
-          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Departure</label>
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-700/90 mb-2 block">Departure</label>
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-700" />
             <input type="date" data-testid="departure-date" min={today}
               value={departureDate} onChange={(e) => setDepartureDate(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-3.5 text-white text-sm" />
+              className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg pl-9 pr-3 py-3.5 text-[#0B132B] text-sm" />
           </div>
         </div>
 
         <div className="md:col-span-2">
-          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Return</label>
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-700/90 mb-2 block">Return</label>
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-700" />
             <input type="date" data-testid="return-date"
               disabled={tripType === "one_way"} min={departureDate}
               value={returnDate} onChange={(e) => setReturnDate(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-3.5 text-white text-sm disabled:opacity-40" />
+              className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg pl-9 pr-3 py-3.5 text-[#0B132B] text-sm disabled:opacity-40" />
           </div>
         </div>
 
         <div className="md:col-span-1">
-          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Pax</label>
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-700/90 mb-2 block">Pax</label>
           <div className="relative">
-            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-700" />
             <input type="number" min="1" max="9" data-testid="passengers"
               value={passengers} onChange={(e) => setPassengers(Math.max(1, +e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-2 py-3.5 text-white text-sm" />
+              className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg pl-9 pr-2 py-3.5 text-[#0B132B] text-sm" />
           </div>
         </div>
       </div>
@@ -99,7 +99,7 @@ export default function FlightSearchWidget({ variant = "hero" }) {
             <button key={c} data-testid={`class-${c}`}
               onClick={() => setCabinClass(c)}
               className={`text-xs px-3 py-1.5 rounded-full transition ${
-                cabinClass === c ? "bg-amber-400/20 text-amber-300 border border-amber-400/40" : "text-white/60 hover:text-white border border-white/10"}`}>
+                cabinClass === c ? "bg-amber-400/20 text-amber-600 border border-amber-500/50" : "text-[#0B132B]/65 hover:text-[#0B132B] border border-[#E5E1D6]"}`}>
               {c.replace("_", " ").toUpperCase()}
             </button>
           ))}

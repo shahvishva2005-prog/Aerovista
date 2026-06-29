@@ -21,7 +21,8 @@ class RegisterReq(BaseModel):
 
 
 class LoginReq(BaseModel):
-    email: EmailStr
+    email: Optional[str] = None  # Email OR mobile — at least one required
+    mobile: Optional[str] = None
     password: str
 
 

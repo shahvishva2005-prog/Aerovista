@@ -20,17 +20,17 @@ export default function Fleet() {
       bgUrl="https://images.unsplash.com/photo-1529074963764-98f45c47344b?w=1920&q=85">
       <div className="grid lg:grid-cols-2 gap-6">
         {FLEET.map((f) => (
-          <div key={f.name} className="glass-light rounded-2xl overflow-hidden border border-white/10" data-testid={`fleet-${f.name.replace(/\s+/g, "-")}`}>
+          <div key={f.name} className="glass-light rounded-2xl overflow-hidden border border-[#E5E1D6]" data-testid={`fleet-${f.name.replace(/\s+/g, "-")}`}>
             <div className="h-64 overflow-hidden">
               <img src={f.img} alt={f.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
             </div>
             <div className="p-6">
-              <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-2">{f.role}</div>
-              <h3 className="font-serif-display text-3xl text-white mb-4">{f.name}</h3>
+              <div className="text-amber-700 text-[10px] tracking-[0.3em] uppercase mb-2">{f.role}</div>
+              <h3 className="font-serif-display text-3xl text-[#0B132B] mb-4">{f.name}</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div><div className="font-serif-display text-2xl av-text-gold-grad">{f.capacity}</div><div className="text-white/55 text-xs uppercase">Seats</div></div>
-                <div><div className="font-serif-display text-2xl av-text-gold-grad">{f.range}</div><div className="text-white/55 text-xs uppercase">Range</div></div>
-                <div><div className="font-serif-display text-2xl av-text-gold-grad">{f.units}</div><div className="text-white/55 text-xs uppercase">Units</div></div>
+                <div><div className="font-serif-display text-2xl av-text-gold-grad">{f.capacity}</div><div className="text-[#0B132B]/60 text-xs uppercase">Seats</div></div>
+                <div><div className="font-serif-display text-2xl av-text-gold-grad">{f.range}</div><div className="text-[#0B132B]/60 text-xs uppercase">Range</div></div>
+                <div><div className="font-serif-display text-2xl av-text-gold-grad">{f.units}</div><div className="text-[#0B132B]/60 text-xs uppercase">Units</div></div>
               </div>
             </div>
           </div>

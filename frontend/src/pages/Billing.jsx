@@ -46,7 +46,7 @@ export default function Billing() {
     nav(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
     return null;
   }
-  if (!flight) return <div className="pt-32 text-center text-white/70">Loading…</div>;
+  if (!flight) return <div className="pt-32 text-center text-[#0B132B]/72">Loading…</div>;
 
   const updatePax = (i, field, v) => {
     const next = [...passengers]; next[i] = { ...next[i], [field]: v }; setPassengers(next);
@@ -89,20 +89,20 @@ export default function Billing() {
     <div className="min-h-screen pt-24 pb-16" data-testid="billing-page">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="mb-8">
-          <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-3">Step 3 of 4 • Passenger & Billing</div>
-          <h2 className="font-serif-display text-4xl text-white">Complete your details</h2>
+          <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-3">Step 3 of 4 • Passenger & Billing</div>
+          <h2 className="font-serif-display text-4xl text-[#0B132B]">Complete your details</h2>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             {/* Passengers */}
             <section className="glass-light rounded-2xl p-6">
-              <h3 className="font-serif-display text-2xl text-white mb-5">Passenger Information</h3>
+              <h3 className="font-serif-display text-2xl text-[#0B132B] mb-5">Passenger Information</h3>
               {passengers.map((p, i) => (
-                <div key={i} className="border-t border-white/5 first:border-t-0 pt-5 first:pt-0 pb-5 last:pb-0">
+                <div key={i} className="border-t border-[#E5E1D6] first:border-t-0 pt-5 first:pt-0 pb-5 last:pb-0">
                   <div className="flex justify-between items-center mb-3">
-                    <div className="text-amber-400 text-xs tracking-[0.2em] uppercase">Passenger {i + 1}</div>
-                    {seats[i] && <div className="text-white/60 text-sm">Seat <span className="text-amber-400 font-mono-aero">{seats[i]}</span></div>}
+                    <div className="text-amber-700 text-xs tracking-[0.2em] uppercase">Passenger {i + 1}</div>
+                    {seats[i] && <div className="text-[#0B132B]/65 text-sm">Seat <span className="text-amber-700 font-mono-aero">{seats[i]}</span></div>}
                   </div>
                   <div className="grid md:grid-cols-12 gap-3">
                     <Select label="Title" col="md:col-span-2" value={p.title} options={["Mr", "Mrs", "Ms", "Mstr"]} onChange={(v) => updatePax(i, "title", v)} testId={`pax-title-${i}`} />
@@ -118,7 +118,7 @@ export default function Billing() {
                         ["is_senior", "Senior Citizen"], ["is_disabled", "Disabled"],
                         ["is_child", "Child"], ["is_infant", "Infant"],
                       ].map(([k, l]) => (
-                        <label key={k} className="text-xs text-white/70 flex items-center gap-2 bg-white/5 px-3 py-2 rounded-full">
+                        <label key={k} className="text-xs text-[#0B132B]/72 flex items-center gap-2 bg-[#0B132B]/5 px-3 py-2 rounded-full">
                           <input type="checkbox" checked={p[k]} onChange={(e) => updatePax(i, k, e.target.checked)} /> {l}
                         </label>
                       ))}
@@ -130,7 +130,7 @@ export default function Billing() {
 
             {/* Billing Address */}
             <section className="glass-light rounded-2xl p-6">
-              <h3 className="font-serif-display text-2xl text-white mb-5">Billing & Contact</h3>
+              <h3 className="font-serif-display text-2xl text-[#0B132B] mb-5">Billing & Contact</h3>
               <div className="grid md:grid-cols-12 gap-3">
                 <Input label="Contact Name" col="md:col-span-6" value={billing.contact_name} onChange={(v) => updateBill("contact_name", v)} testId="bill-name" />
                 <Input label="Email" col="md:col-span-6" type="email" value={billing.contact_email} onChange={(v) => updateBill("contact_email", v)} testId="bill-email" />
@@ -147,36 +147,36 @@ export default function Billing() {
 
             {/* Add-ons */}
             <section className="glass-light rounded-2xl p-6">
-              <h3 className="font-serif-display text-2xl text-white mb-5">Add-ons</h3>
+              <h3 className="font-serif-display text-2xl text-[#0B132B] mb-5">Add-ons</h3>
               <div className="grid md:grid-cols-2 gap-4">
-                <label className={`p-5 rounded-xl border cursor-pointer transition ${addBaggage ? "border-amber-400 bg-amber-400/10" : "border-white/10 hover:border-white/30"}`}>
+                <label className={`p-5 rounded-xl border cursor-pointer transition ${addBaggage ? "border-amber-400 bg-amber-400/10" : "border-[#E5E1D6] hover:border-white/30"}`}>
                   <input type="checkbox" checked={addBaggage} onChange={(e) => setAddBaggage(e.target.checked)} className="hidden" />
                   <div className="flex items-start gap-3">
-                    <Briefcase className="w-5 h-5 text-amber-400 mt-1" />
+                    <Briefcase className="w-5 h-5 text-amber-700 mt-1" />
                     <div>
-                      <div className="text-white font-medium">Extra Baggage 15kg</div>
-                      <div className="text-white/55 text-xs">{fmtINR(800)} per passenger</div>
+                      <div className="text-[#0B132B] font-medium">Extra Baggage 15kg</div>
+                      <div className="text-[#0B132B]/60 text-xs">{fmtINR(800)} per passenger</div>
                     </div>
                   </div>
                 </label>
-                <label className={`p-5 rounded-xl border cursor-pointer transition ${addInsurance ? "border-amber-400 bg-amber-400/10" : "border-white/10 hover:border-white/30"}`}>
+                <label className={`p-5 rounded-xl border cursor-pointer transition ${addInsurance ? "border-amber-400 bg-amber-400/10" : "border-[#E5E1D6] hover:border-white/30"}`}>
                   <input type="checkbox" checked={addInsurance} onChange={(e) => setAddInsurance(e.target.checked)} className="hidden" />
                   <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-amber-400 mt-1" />
+                    <Shield className="w-5 h-5 text-amber-700 mt-1" />
                     <div>
-                      <div className="text-white font-medium">Travel Insurance</div>
-                      <div className="text-white/55 text-xs">{fmtINR(250)} per passenger</div>
+                      <div className="text-[#0B132B] font-medium">Travel Insurance</div>
+                      <div className="text-[#0B132B]/60 text-xs">{fmtINR(250)} per passenger</div>
                     </div>
                   </div>
                 </label>
               </div>
               <div className="mt-5">
-                <div className="text-white/60 text-xs tracking-[0.2em] uppercase mb-2">Promo Code</div>
+                <div className="text-[#0B132B]/65 text-xs tracking-[0.2em] uppercase mb-2">Promo Code</div>
                 <div className="flex gap-2">
                   <input value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} placeholder="HDFC10, ICICI200, AXIS5, SBI500"
                     data-testid="promo-code"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm" />
-                  <button className="bg-amber-400/20 text-amber-300 px-5 rounded-lg border border-amber-400/40 hover:bg-amber-400/30 transition text-sm">
+                    className="flex-1 bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3 text-[#0B132B] text-sm" />
+                  <button className="bg-amber-400/20 text-amber-600 px-5 rounded-lg border border-amber-500/50 hover:bg-amber-400/30 transition text-sm">
                     Apply
                   </button>
                 </div>
@@ -186,22 +186,22 @@ export default function Billing() {
 
           {/* Summary */}
           <aside className="glass-light rounded-2xl p-6 h-fit sticky top-28">
-            <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-3">Trip Summary</div>
+            <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-3">Trip Summary</div>
             <div className="flex items-center gap-3 mb-5">
-              <Plane className="w-5 h-5 text-amber-400" />
+              <Plane className="w-5 h-5 text-amber-700" />
               <div>
-                <div className="text-white font-medium text-sm">{flight.origin} → {flight.destination}</div>
-                <div className="text-white/50 text-xs">{flight.flight_number} • {flight.departure_date}</div>
+                <div className="text-[#0B132B] font-medium text-sm">{flight.origin} → {flight.destination}</div>
+                <div className="text-[#0B132B]/55 text-xs">{flight.flight_number} • {flight.departure_date}</div>
               </div>
             </div>
 
-            <div className="space-y-2 text-sm border-t border-white/5 pt-4">
+            <div className="space-y-2 text-sm border-t border-[#E5E1D6] pt-4">
               <Row k={`Base × ${numPax}`} v={fmtINR(baseEst)} />
               <Row k="Seats & Add-ons" v={fmtINR(addonsEst)} />
               <Row k="Taxes (est.)" v={fmtINR(Math.round((baseEst + addonsEst) * 0.05))} />
               <Row k="Convenience" v={fmtINR(50)} />
-              <div className="border-t border-white/10 pt-3 flex justify-between items-center">
-                <span className="text-white">Estimated Total</span>
+              <div className="border-t border-[#E5E1D6] pt-3 flex justify-between items-center">
+                <span className="text-[#0B132B]">Estimated Total</span>
                 <span className="font-serif-display text-2xl av-text-gold-grad">{fmtINR(baseEst + addonsEst + Math.round((baseEst + addonsEst) * 0.05) + 50)}</span>
               </div>
             </div>
@@ -221,9 +221,9 @@ export default function Billing() {
 function Input({ label, value, onChange, col = "", type = "text", testId }) {
   return (
     <div className={col}>
-      <label className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">{label}</label>
+      <label className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">{label}</label>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}
-        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-amber-400 outline-none" />
+        className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3 text-[#0B132B] text-sm focus:border-amber-400 outline-none" />
     </div>
   );
 }
@@ -232,9 +232,9 @@ function Select({ label, value, options, onChange, col = "", testId }) {
   const items = options.map((o) => Array.isArray(o) ? o : [o, o]);
   return (
     <div className={col}>
-      <label className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">{label}</label>
+      <label className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}
-        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:border-amber-400 outline-none">
+        className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-3 py-3 text-[#0B132B] text-sm focus:border-amber-400 outline-none">
         {items.map(([v, l]) => <option key={v} value={v} className="bg-[#1C2541]">{l}</option>)}
       </select>
     </div>
@@ -242,5 +242,5 @@ function Select({ label, value, options, onChange, col = "", testId }) {
 }
 
 function Row({ k, v }) {
-  return <div className="flex justify-between"><span className="text-white/55">{k}</span><span className="text-white">{v}</span></div>;
+  return <div className="flex justify-between"><span className="text-[#0B132B]/60">{k}</span><span className="text-[#0B132B]">{v}</span></div>;
 }

@@ -16,8 +16,8 @@ export default function Contact() {
         <div className="lg:col-span-2 glass-light rounded-2xl p-7">
           {sent ? (
             <div className="text-center py-12">
-              <div className="font-serif-display text-3xl text-white mb-2">Thank you!</div>
-              <p className="text-white/65">Our team will reach out within 24 hours.</p>
+              <div className="font-serif-display text-3xl text-[#0B132B] mb-2">Thank you!</div>
+              <p className="text-[#0B132B]/70">Our team will reach out within 24 hours.</p>
             </div>
           ) : (
             <form onSubmit={(e) => { e.preventDefault(); setSent(true); }} className="space-y-4">
@@ -27,8 +27,8 @@ export default function Contact() {
               </div>
               <Input label="Subject" />
               <div>
-                <label className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">Message</label>
-                <textarea required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-amber-400 outline-none min-h-[140px]" />
+                <label className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">Message</label>
+                <textarea required className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3 text-[#0B132B] text-sm focus:border-amber-400 outline-none min-h-[140px]" />
               </div>
               <button data-testid="contact-submit" className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold px-7 py-3 rounded-full transition">Send Message</button>
             </form>
@@ -42,8 +42,8 @@ export default function Contact() {
 function Input({ label, type = "text", required }) {
   return (
     <label className="block">
-      <span className="text-[10px] tracking-[0.2em] uppercase text-white/55 mb-1.5 block">{label}</span>
-      <input type={type} required={required} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-amber-400 outline-none" />
+      <span className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">{label}</span>
+      <input type={type} required={required} className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3 text-[#0B132B] text-sm focus:border-amber-400 outline-none" />
     </label>
   );
 }
@@ -52,10 +52,10 @@ function Card({ Icon, title, lines }) {
   return (
     <div className="glass-light rounded-2xl p-5">
       <div className="flex items-start gap-3">
-        <Icon className="w-5 h-5 text-amber-400 mt-1" />
+        <Icon className="w-5 h-5 text-amber-700 mt-1" />
         <div>
-          <div className="text-amber-400 text-[10px] tracking-[0.3em] uppercase mb-1">{title}</div>
-          {lines.map((l, i) => <div key={i} className="text-white text-sm">{l}</div>)}
+          <div className="text-amber-700 text-[10px] tracking-[0.3em] uppercase mb-1">{title}</div>
+          {lines.map((l, i) => <div key={i} className="text-[#0B132B] text-sm">{l}</div>)}
         </div>
       </div>
     </div>

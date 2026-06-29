@@ -13,7 +13,7 @@ export default function BookingConfirmation() {
     api.get(`/bookings/${bookingId}`).then((r) => setBooking(r.data));
   }, [bookingId]);
 
-  if (!booking) return <div className="pt-32 text-center text-white/70">Loading confirmation…</div>;
+  if (!booking) return <div className="pt-32 text-center text-[#0B132B]/72">Loading confirmation…</div>;
   const f = booking.flight_snapshot;
   const token = localStorage.getItem("av_token");
   const link = (path) => `${API}${path}?_=${token ? "1" : "0"}`;
@@ -28,10 +28,10 @@ export default function BookingConfirmation() {
             </div>
             <div className="flex-1">
               <div className="text-emerald-300 text-xs tracking-[0.3em] uppercase mb-1">Confirmed</div>
-              <h2 className="font-serif-display text-4xl text-white">Your journey is booked.</h2>
-              <p className="text-white/65 mt-2">A confirmation email with your e-ticket is on its way. Have a wonderful flight!</p>
+              <h2 className="font-serif-display text-4xl text-[#0B132B]">Your journey is booked.</h2>
+              <p className="text-[#0B132B]/70 mt-2">A confirmation email with your e-ticket is on its way. Have a wonderful flight!</p>
               {points && (
-                <div className="mt-3 inline-flex items-center gap-2 bg-amber-400/15 text-amber-300 rounded-full px-3 py-1.5 text-xs">
+                <div className="mt-3 inline-flex items-center gap-2 bg-amber-400/15 text-amber-600 rounded-full px-3 py-1.5 text-xs">
                   <Sparkles className="w-3.5 h-3.5" /> Earned {points} SkyChip points
                 </div>
               )}
@@ -41,14 +41,14 @@ export default function BookingConfirmation() {
 
         {/* Ticket card - light over dark */}
         <div className="bg-white rounded-2xl overflow-hidden shadow-2xl mb-8" data-testid="ticket-card">
-          <div className="bg-[#0B132B] p-6 flex items-center justify-between">
+          <div className="av-bg-cream p-6 flex items-center justify-between">
             <div>
-              <div className="text-amber-400 text-[11px] tracking-[0.3em] uppercase">AeroVista Airlines</div>
-              <div className="font-serif-display text-2xl text-white mt-1">E-Ticket</div>
+              <div className="text-amber-700 text-[11px] tracking-[0.3em] uppercase">AeroVista Airlines</div>
+              <div className="font-serif-display text-2xl text-[#0B132B] mt-1">E-Ticket</div>
             </div>
             <div className="text-right">
-              <div className="text-amber-300 text-[11px] tracking-[0.3em] uppercase">PNR</div>
-              <div className="font-mono-aero text-2xl text-white">{booking.pnr}</div>
+              <div className="text-amber-600 text-[11px] tracking-[0.3em] uppercase">PNR</div>
+              <div className="font-mono-aero text-2xl text-[#0B132B]">{booking.pnr}</div>
             </div>
           </div>
 
@@ -130,8 +130,8 @@ export default function BookingConfirmation() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link to="/account" className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold px-6 py-3 rounded-full">My Bookings</Link>
-          <Link to="/checkin" className="glass-light hover:bg-white/15 text-white px-6 py-3 rounded-full">Web Check-In</Link>
-          <Link to="/" className="glass-light hover:bg-white/15 text-white px-6 py-3 rounded-full">Back Home</Link>
+          <Link to="/checkin" className="glass-light hover:bg-[#0B132B]/12 text-[#0B132B] px-6 py-3 rounded-full">Web Check-In</Link>
+          <Link to="/" className="glass-light hover:bg-[#0B132B]/12 text-[#0B132B] px-6 py-3 rounded-full">Back Home</Link>
         </div>
       </div>
     </div>
@@ -162,12 +162,12 @@ function DownloadCard({ Icon, label, href, testId }) {
   };
   return (
     <a href={href.split("?")[0]} onClick={handleClick} data-testid={testId}
-      className="glass-light rounded-2xl p-5 hover:border-amber-400/40 border border-white/10 flex items-center justify-between transition">
+      className="glass-light rounded-2xl p-5 hover:border-amber-500/50 border border-[#E5E1D6] flex items-center justify-between transition">
       <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-amber-400" />
-        <div className="text-white text-sm">{label}</div>
+        <Icon className="w-5 h-5 text-amber-700" />
+        <div className="text-[#0B132B] text-sm">{label}</div>
       </div>
-      <Download className="w-4 h-4 text-white/60" />
+      <Download className="w-4 h-4 text-[#0B132B]/65" />
     </a>
   );
 }
