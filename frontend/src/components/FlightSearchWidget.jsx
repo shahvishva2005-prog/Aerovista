@@ -3,6 +3,15 @@ import React, { useState } from "react";
 export default function FlightSearchWidget({ onSearch }) {
   const [form, setForm] = useState({ origin: "", destination: "", date: "" });
 
+  // Dynamically calculate today's date in YYYY-MM-DD format based on local time
+  const getTodayDateString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSearch) {
@@ -47,9 +56,10 @@ export default function FlightSearchWidget({ onSearch }) {
         <input
           type="date"
           required
+          min={getTodayDateString()} // Restricts user selection to today or future dates only
           value={form.date}
           onChange={(e) => setForm({ ...form, date: e.target.value })}
-          className="w-full bg-[#0b0f19] border border-slate-700 rounded-lg p-2.5 text-sm font-medium text-white focus:outline-none focus:border-yellow-500 transition-all"
+          className="w-full bg-[#0b0f19] border border-slate-700 rounded-lg p-2.5 text-sm font-medium text-white focus:outline-none focus:border-yellow-500 transition-all [color-scheme:dark]"
         />
       </div>
 
