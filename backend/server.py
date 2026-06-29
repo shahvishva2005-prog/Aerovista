@@ -11,7 +11,7 @@ from typing import List, Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, Body
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -36,18 +36,42 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-# 🌟 APPLICATION CORNERSTONE SERVICE MATRIX
+# 🌟 APPLICATION INITIALIZATION 
 app = FastAPI(title="AeroVista Airlines API")
 
-# 🔒 SECURITY ENGINE: Fixed wildcard conflict to pass browser security checks cleanly
+# 🔒 STEP 1: DEFINE MIDDLEWARE WITH STANDARD COMPATIBILITY FLAGS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
-    allow_credentials=False,  # Bypasses browser preflight tracking blocks (Bearer authentication verified)
+    allow_credentials=False,  
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# 🛠️ GLOBAL EXCEPTION HANDLING INTERCEPTOR FOR CORS SAFETY
+@app.exception_handler(HTTPException)
+async def cors_http_exception_handler(request, exc):
+    """Guarantees that error states (401, 403, 404) retain valid CORS headers for the browser."""
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail, "success": False}
+    )
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# 🚀 EXPLICIT PREFLIGHT ROUTE OVERRIDE
+@app.options("/{rest_of_path:path}")
+async def preflight_fallback_handler(rest_of_path: str):
+    """Explicitly absorbs browser OPTIONS calls that might drop past Starlette's inner engine middleware."""
+    response = JSONResponse(status_code=200, content={"status": "preflight_passed"})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# 🛠️ BASE ROUTER
 api = APIRouter()
 
 # Background scheduler — runs pre-departure upsell scan hourly
@@ -164,7 +188,6 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
 # ===== Seed Endpoint =====
 @api.get("/admin/seed")
 async def admin_seed(force: bool = False):
-    """Seed system configurations, baseline users, and analytical metrics logs logs."""
     existing = await db.users.count_documents({})
     if existing > 0 and not force:
         return {"message": "Already seeded", "users": existing}
@@ -199,7 +222,6 @@ async def admin_seed(force: bool = False):
     }
     await db.users.insert_many([admin, pilot_user, crew_user, customer])
 
-    # ===== Financial Logs Baseline (20 records) =====
     fin_records = [
         ("2025-09", "Route P&L", "DEL-BOM", 1850000, 42000, 18.5, "Off"),
         ("2025-09", "Route P&L", "DEL-BLR", 1620000, 31000, 16.2, "Off"),
@@ -228,7 +250,6 @@ async def admin_seed(force: bool = False):
     } for m, k, r, rev, refs, pm, s in fin_records]
     await db.financial_records.insert_many(fin_docs)
 
-    # Traffic Events Baseline
     today = now.date()
     traffic_docs = []
     for d in range(0, 30):
@@ -312,28 +333,24 @@ async def me(user=Depends(get_current_user)):
     return user
 
 
-# ===== Flights Dynamic Engine Routes =====
+# ===== Flights =====
 @api.post("/flights/search")
 async def search_flights(req: FlightSearchReq):
     flights = _generate_flights_for_route(req.origin, req.destination, req.departure_date)
-    
     now = datetime.now(timezone.utc)
     enriched = []
     for f in flights:
         dep_dt = datetime.fromisoformat(f["departure_iso"])
         if dep_dt < now:
             continue
-            
         ratio = f["available_seats"] / f["total_seats"]
         mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
         base = f["base_price"] * mult
         price, reasons = _calc_dynamic_price(base, dep_dt, ratio)
-        
         f["price"] = price
         f["price_reasons"] = reasons
         f["cabin_class"] = req.cabin_class
         enriched.append(f)
-
     return {"outbound": enriched, "return": [], "trip_type": req.trip_type, "passengers": req.passengers}
 
 
@@ -354,7 +371,6 @@ async def flight_detail(flight_id: str):
     rows, cols = 30, ["A", "B", "C", "D", "E", "F"]
     random.seed(sum(ord(c) for c in flight_id))
     occupied = set(random.sample([f"{r}{c}" for r in range(1, rows + 1) for c in cols], k=80))
-    
     seat_map = []
     for r in range(1, rows + 1):
         for c in cols:
@@ -362,14 +378,12 @@ async def flight_detail(flight_id: str):
             seat_type = "first" if r <= 2 else "business" if r <= 5 else "premium_economy" if r <= 8 else "economy"
             state = "occupied" if seat in occupied else "available"
             extra_price = {"first": 9500, "business": 4500, "premium_economy": 800, "economy": 200 if c in ("A", "F") else 0}[seat_type]
-            
             seat_map.append({"seat": seat, "row": r, "col": c, "type": seat_type, "state": state, "extra_price": extra_price})
-            
     f["seat_map"] = seat_map
     return f
 
 
-# ===== Booking Operations =====
+# ===== Bookings =====
 @api.post("/bookings")
 async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
     parts = req.flight_id.split("-")
@@ -384,8 +398,7 @@ async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
 
     dep_dt = datetime.fromisoformat(flight["departure_iso"])
     now = datetime.now(timezone.utc)
-    if dep_dt <= now:
-        raise HTTPException(status_code=400, detail="This flight has already departed.")
+    if dep_dt <= now: raise HTTPException(status_code=400, detail="This flight has already departed.")
 
     ratio = flight["available_seats"] / flight["total_seats"]
     mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
@@ -497,7 +510,7 @@ async def download_receipt(booking_id: str, user=Depends(get_current_user)):
 @api.get("/bookings/{booking_id}/boarding-pass.pdf")
 async def download_boarding(booking_id: str, passenger_idx: int = 0, user=Depends(get_current_user)):
     b = await db.bookings.find_one({"id": booking_id}, PROJECT_NO_ID)
-    if not b or (b["user_id"] != user["id"] and user.get("role") != "admin"): raise HTTPException(status_code=404, detail="Not found")
+    if not b or (b["user_id"] != user["id"] and b.get("role") != "admin"): raise HTTPException(status_code=404, detail="Not found")
     if passenger_idx >= len(b["passengers"]): raise HTTPException(status_code=400, detail="Invalid passenger index")
     seat = b["seats"][passenger_idx] if passenger_idx < len(b["seats"]) else "TBA"
     return StreamingResponse(io.BytesIO(pdf_mod.generate_boarding_pass_pdf(b, b["flight_snapshot"], b["passengers"][passenger_idx], seat)), media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=boarding-{b['pnr']}-{passenger_idx+1}.pdf"})
