@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api, fmtINR, fmtDate, API } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Plane, Ticket, Receipt, Download, RefreshCw, FileText, AlertTriangle } from "lucide-react";
@@ -12,9 +12,10 @@ const TIERS = ["Bronze", "Silver", "Gold", "Platinum"];
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
+  const [params] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [refunds, setRefunds] = useState([]);
-  const [tab, setTab] = useState("upcoming");
+  const [tab, setTab] = useState(params.get("tab") || "upcoming");
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelBusy, setCancelBusy] = useState(false);
 

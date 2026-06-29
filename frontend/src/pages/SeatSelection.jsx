@@ -23,7 +23,7 @@ export default function SeatSelection() {
     .reduce((acc, s) => acc + (s.extra_price || 0), 0);
 
   return (
-    <div className="min-h-screen pt-24 pb-16" data-testid="seats-page">
+    <div className="min-h-screen pt-24 pb-16 av-bg-booking" data-testid="seats-page">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="mb-8">
           <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-3">Step 2 of 4 • Select Seats</div>

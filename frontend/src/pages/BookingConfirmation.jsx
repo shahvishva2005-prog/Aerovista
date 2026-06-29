@@ -19,7 +19,7 @@ export default function BookingConfirmation() {
   const link = (path) => `${API}${path}?_=${token ? "1" : "0"}`;
 
   return (
-    <div className="min-h-screen pt-24 pb-16" data-testid="confirmation-page">
+    <div className="min-h-screen pt-24 pb-16 av-bg-booking" data-testid="confirmation-page">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="glass-light rounded-2xl p-8 mb-8 border border-emerald-400/30">
           <div className="flex items-start gap-4">

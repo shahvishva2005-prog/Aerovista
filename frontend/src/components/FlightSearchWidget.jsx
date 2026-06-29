@@ -32,7 +32,6 @@ export default function FlightSearchWidget({ variant = "hero" }) {
         {[
           { v: "one_way", label: "One Way" },
           { v: "round_trip", label: "Round Trip" },
-          { v: "multi_city", label: "Multi City" },
         ].map((o) => (
           <button key={o.v} data-testid={`trip-${o.v}`}
             onClick={() => setTripType(o.v)}

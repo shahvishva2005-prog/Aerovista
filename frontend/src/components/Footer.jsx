@@ -44,7 +44,7 @@ export default function Footer() {
             <li><Link to="/track" className="hover:text-amber-300 transition">Track Flight</Link></li>
             <li><Link to="/checkin" className="hover:text-amber-300 transition">Web Check-In</Link></li>
             <li><Link to="/account" className="hover:text-amber-300 transition">My Bookings</Link></li>
-            <li><Link to="/contact" className="hover:text-amber-300 transition">Refund Status</Link></li>
+            <li><Link to="/account?tab=refunds" className="hover:text-amber-300 transition">Refund Status</Link></li>
           </ul>
         </div>
 
@@ -55,8 +55,9 @@ export default function Footer() {
             <li className="flex items-center gap-3"><Phone className="w-4 h-4 text-amber-400" /> +91 1800-AEROVISTA</li>
             <li className="flex items-center gap-3"><MapPin className="w-4 h-4 text-amber-400" /> AeroVista HQ, Delhi, India</li>
           </ul>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap gap-x-5 gap-y-1">
             <Link to="/careers" className="text-amber-400 text-sm hover:text-amber-300 transition">Careers at AeroVista →</Link>
+            <Link to="/reviews" className="text-amber-400 text-sm hover:text-amber-300 transition">Customer Reviews →</Link>
           </div>
         </div>
       </div>

@@ -22,6 +22,8 @@ export default function Billing() {
       title: "Mr", first_name: "", last_name: "", dob: "",
       gender: "M", nationality: "Indian", passport_no: "",
       is_senior: false, is_disabled: false, is_child: false, is_infant: false,
+      is_medical: false, medical_id: "",
+      is_armed_forces: false, service_id: "",
     }))
   );
   const [meals, setMeals] = useState(Array.from({ length: numPax }, () => "Standard"));
@@ -34,6 +36,11 @@ export default function Billing() {
     contact_mobile: user?.mobile || "",
     address_line1: "", address_line2: "",
     city: "", state: "", postal_code: "", country: "India", gst_number: "",
+    corporate: null,
+  });
+  const [useCorporate, setUseCorporate] = useState(false);
+  const [corp, setCorp] = useState({
+    company_name: "", gstin: "", po_number: "", invoice_email: "", travel_policy: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +63,9 @@ export default function Billing() {
 
   // estimate
   const baseEst = Math.round(flight.base_price * { economy: 1, premium_economy: 1.6, business: 2.8, first: 4.5 }[cabin] * numPax);
+  const concessionPax = passengers.filter((p) => p.is_medical || p.is_armed_forces).length;
+  const concessionEst = Math.round((baseEst / Math.max(1, numPax)) * 0.20 * concessionPax);
+  const corporateDiscEst = useCorporate && corp.company_name ? Math.round(baseEst * 0.05) : 0;
   const addonsEst = (addBaggage ? 800 * numPax : 0) + (addInsurance ? 250 * numPax : 0) + meals.filter((m) => m && m !== "Standard").length * 350;
 
   const submit = async () => {
@@ -64,6 +74,8 @@ export default function Billing() {
       // Validate
       for (const p of passengers) {
         if (!p.first_name || !p.last_name) { throw new Error("Please enter all passenger names"); }
+        if (p.is_medical && !p.medical_id) { throw new Error("Medical concession requires Medical Council / Hospital ID"); }
+        if (p.is_armed_forces && !p.service_id) { throw new Error("Armed Forces concession requires Service / Regiment ID"); }
       }
       if (!billing.contact_name || !billing.contact_email || !billing.contact_mobile) {
         throw new Error("Please complete billing contact details");
@@ -71,11 +83,17 @@ export default function Billing() {
       if (!billing.address_line1 || !billing.city || !billing.state || !billing.postal_code) {
         throw new Error("Please complete billing address");
       }
+      if (useCorporate) {
+        if (!corp.company_name || !corp.gstin) {
+          throw new Error("Corporate booking requires Company Name and GSTIN");
+        }
+      }
+      const fullBilling = { ...billing, corporate: useCorporate ? corp : null };
       const r = await api.post("/bookings", {
         flight_id: flightId, cabin_class: cabin, passengers,
         seat_numbers: seats, meal_preferences: meals,
         add_baggage: addBaggage, add_insurance: addInsurance,
-        billing, promo_code: promo,
+        billing: fullBilling, promo_code: promo,
       });
       nav(`/payment/${r.data.id}`);
     } catch (e) {
@@ -86,7 +104,7 @@ export default function Billing() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16" data-testid="billing-page">
+    <div className="min-h-screen pt-24 pb-16 av-bg-booking" data-testid="billing-page">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="mb-8">
           <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-3">Step 3 of 4 • Passenger & Billing</div>
@@ -123,6 +141,39 @@ export default function Billing() {
                         </label>
                       ))}
                     </div>
+
+                    {/* Concession (Medical / Armed Forces) */}
+                    <div className="md:col-span-12 mt-2 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                      <div className="text-[10px] tracking-[0.3em] uppercase text-amber-700 mb-3">Concession (20% off base fare)</div>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <label className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer border ${p.is_medical ? "border-amber-400 bg-white" : "border-amber-200 bg-white/60"}`}>
+                          <input type="checkbox" data-testid={`pax-medical-${i}`}
+                            checked={p.is_medical}
+                            onChange={(e) => updatePax(i, "is_medical", e.target.checked)} />
+                          <div>
+                            <div className="text-sm text-[#0B132B] font-medium">Medical Personnel</div>
+                            <div className="text-[10px] text-[#0B132B]/55">Doctors, nurses, paramedics</div>
+                          </div>
+                        </label>
+                        <label className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer border ${p.is_armed_forces ? "border-amber-400 bg-white" : "border-amber-200 bg-white/60"}`}>
+                          <input type="checkbox" data-testid={`pax-armed-${i}`}
+                            checked={p.is_armed_forces}
+                            onChange={(e) => updatePax(i, "is_armed_forces", e.target.checked)} />
+                          <div>
+                            <div className="text-sm text-[#0B132B] font-medium">Armed Forces</div>
+                            <div className="text-[10px] text-[#0B132B]/55">Active / Veteran service personnel</div>
+                          </div>
+                        </label>
+                        {p.is_medical && (
+                          <Input label="Medical Council / Hospital ID" col="md:col-span-1" value={p.medical_id}
+                            onChange={(v) => updatePax(i, "medical_id", v)} testId={`pax-medical-id-${i}`} />
+                        )}
+                        {p.is_armed_forces && (
+                          <Input label="Service / Regiment ID" col="md:col-span-1" value={p.service_id}
+                            onChange={(v) => updatePax(i, "service_id", v)} testId={`pax-service-id-${i}`} />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -143,6 +194,38 @@ export default function Billing() {
                 <Input label="Postal Code" col="md:col-span-4" value={billing.postal_code} onChange={(v) => updateBill("postal_code", v)} testId="bill-zip" />
                 <Select label="Country" col="md:col-span-12" value={billing.country} options={COUNTRIES} onChange={(v) => updateBill("country", v)} />
               </div>
+            </section>
+
+            {/* Corporate Booking */}
+            <section className="glass-light rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif-display text-2xl text-[#0B132B]">Corporate Booking</h3>
+                <label className="text-xs text-[#0B132B]/72 flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-full cursor-pointer">
+                  <input type="checkbox" data-testid="use-corporate"
+                    checked={useCorporate} onChange={(e) => setUseCorporate(e.target.checked)} />
+                  Book under company name (5% off)
+                </label>
+              </div>
+              {useCorporate && (
+                <div className="grid md:grid-cols-12 gap-3">
+                  <Input label="Company Name *" col="md:col-span-6" value={corp.company_name}
+                    onChange={(v) => setCorp({ ...corp, company_name: v })} testId="corp-name" />
+                  <Input label="Company GSTIN *" col="md:col-span-6" value={corp.gstin}
+                    onChange={(v) => setCorp({ ...corp, gstin: v.toUpperCase() })} testId="corp-gstin" />
+                  <Input label="PO / Reference Number" col="md:col-span-6" value={corp.po_number}
+                    onChange={(v) => setCorp({ ...corp, po_number: v })} testId="corp-po" />
+                  <Input label="Invoice Email" type="email" col="md:col-span-6" value={corp.invoice_email}
+                    onChange={(v) => setCorp({ ...corp, invoice_email: v })} testId="corp-invoice-email" />
+                  <Input label="Travel Policy / Cost Centre (optional)" col="md:col-span-12" value={corp.travel_policy}
+                    onChange={(v) => setCorp({ ...corp, travel_policy: v })} />
+                  <div className="md:col-span-12 text-[11px] text-[#0B132B]/55">
+                    GST invoice will be raised to the company. The 5% corporate discount is applied automatically.
+                  </div>
+                </div>
+              )}
+              {!useCorporate && (
+                <div className="text-[#0B132B]/55 text-sm">Toggle on if booking on behalf of a company — we&apos;ll raise a GST invoice and apply a 5% corporate discount.</div>
+              )}
             </section>
 
             {/* Add-ons */}
@@ -198,11 +281,17 @@ export default function Billing() {
             <div className="space-y-2 text-sm border-t border-[#E5E1D6] pt-4">
               <Row k={`Base × ${numPax}`} v={fmtINR(baseEst)} />
               <Row k="Seats & Add-ons" v={fmtINR(addonsEst)} />
-              <Row k="Taxes (est.)" v={fmtINR(Math.round((baseEst + addonsEst) * 0.05))} />
+              {concessionEst > 0 && (
+                <Row k={`Concession (${concessionPax} pax)`} v={`- ${fmtINR(concessionEst)}`} />
+              )}
+              {corporateDiscEst > 0 && (
+                <Row k="Corporate (5%)" v={`- ${fmtINR(corporateDiscEst)}`} />
+              )}
+              <Row k="Taxes (est.)" v={fmtINR(Math.round((baseEst + addonsEst - concessionEst - corporateDiscEst) * 0.05))} />
               <Row k="Convenience" v={fmtINR(50)} />
               <div className="border-t border-[#E5E1D6] pt-3 flex justify-between items-center">
                 <span className="text-[#0B132B]">Estimated Total</span>
-                <span className="font-serif-display text-2xl av-text-gold-grad">{fmtINR(baseEst + addonsEst + Math.round((baseEst + addonsEst) * 0.05) + 50)}</span>
+                <span className="font-serif-display text-2xl av-text-gold-grad">{fmtINR(baseEst + addonsEst - concessionEst - corporateDiscEst + Math.round((baseEst + addonsEst - concessionEst - corporateDiscEst) * 0.05) + 50)}</span>
               </div>
             </div>
 

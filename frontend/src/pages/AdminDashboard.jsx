@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api, fmtINR, API } from "../lib/api";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
-import { Coins, Users, Plane, RefreshCw, BarChart3, Mail, Download, TrendingUp, ChartPie as PieIcon } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Area, AreaChart, Legend } from "recharts";
+import { Coins, Users, Plane, RefreshCw, BarChart3, Mail, Download, Upload, TrendingUp, ChartPie as PieIcon, Activity, UserPlus, CalendarHeart } from "lucide-react";
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
@@ -10,6 +10,11 @@ export default function AdminDashboard() {
   const [emails, setEmails] = useState([]);
   const [trend, setTrend] = useState([]);
   const [occupancy, setOccupancy] = useState(null);
+  const [traffic, setTraffic] = useState([]);
+  const [userGrowth, setUserGrowth] = useState([]);
+  const [seasons, setSeasons] = useState([]);
+  const [festivals, setFestivals] = useState([]);
+  const [financials, setFinancials] = useState([]);
   const [tab, setTab] = useState("overview");
 
   useEffect(() => {
@@ -19,6 +24,11 @@ export default function AdminDashboard() {
     api.get("/admin/email-logs").then((r) => setEmails(r.data));
     api.get("/admin/charts/bookings-trend?days=14").then((r) => setTrend(r.data));
     api.get("/admin/charts/occupancy").then((r) => setOccupancy(r.data));
+    api.get("/admin/charts/traffic?days=30").then((r) => setTraffic(r.data));
+    api.get("/admin/charts/user-growth?days=30").then((r) => setUserGrowth(r.data));
+    api.get("/admin/charts/seasons").then((r) => setSeasons(r.data));
+    api.get("/admin/charts/festivals").then((r) => setFestivals(r.data));
+    api.get("/admin/financial-records").then((r) => setFinancials(r.data));
   }, []);
 
   if (!data) return <div className="pt-32 text-center text-[#0B132B]/72">Loading dashboard…</div>;
@@ -135,13 +145,116 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Traffic + User Growth row */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+          <div className="glass-light rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif-display text-2xl text-[#0B132B]">Website Traffic (30 days)</h3>
+              <Activity className="w-4 h-4 text-amber-700" />
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={traffic}>
+                  <defs>
+                    <linearGradient id="trafGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.6} />
+                      <stop offset="95%" stopColor="#D4AF37" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#0B132B11" />
+                  <XAxis dataKey="date" stroke="#0B132B66" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                  <YAxis stroke="#0B132B66" fontSize={11} />
+                  <Tooltip contentStyle={{ background: "#fff", border: "1px solid #E5E1D6", borderRadius: 8 }} />
+                  <Area type="monotone" dataKey="page_views" stroke="#D4AF37" fill="url(#trafGrad)" strokeWidth={2} name="Page Views" />
+                  <Area type="monotone" dataKey="unique_visitors" stroke="#1C2541" fillOpacity={0} strokeWidth={2} name="Unique Visitors" />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="glass-light rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif-display text-2xl text-[#0B132B]">User Growth (30 days)</h3>
+              <UserPlus className="w-4 h-4 text-amber-700" />
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={userGrowth}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#0B132B11" />
+                  <XAxis dataKey="date" stroke="#0B132B66" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                  <YAxis stroke="#0B132B66" fontSize={11} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: "#fff", border: "1px solid #E5E1D6", borderRadius: 8 }} />
+                  <Line type="monotone" dataKey="users" stroke="#0B132B" strokeWidth={2.5} dot={{ fill: "#D4AF37", r: 3 }} name="Cumulative Users" />
+                  <Line type="monotone" dataKey="new" stroke="#D4AF37" strokeWidth={2} strokeDasharray="4 4" dot={false} name="New / day" />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Seasons + Festivals row */}
+        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+          <div className="glass-light rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif-display text-2xl text-[#0B132B]">Seasonal Revenue</h3>
+              <CalendarHeart className="w-4 h-4 text-amber-700" />
+            </div>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={seasons} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#0B132B11" />
+                  <XAxis type="number" stroke="#0B132B66" fontSize={10}
+                    tickFormatter={(v) => `${(v / 100000).toFixed(0)}L`} />
+                  <YAxis type="category" dataKey="season" stroke="#0B132B66" fontSize={11} width={45} />
+                  <Tooltip contentStyle={{ background: "#fff", border: "1px solid #E5E1D6", borderRadius: 8 }}
+                    formatter={(v) => fmtINR(v)} />
+                  <Bar dataKey="revenue" radius={[0, 6, 6, 0]}>
+                    {seasons.map((s, i) => (
+                      <Cell key={s.season}
+                        fill={s.season === "Peak" ? "#D4AF37" : s.season === "Mid" ? "#B8941F" : "#7C8DB5"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+              {seasons.map((s) => (
+                <div key={s.season} className="p-2 rounded-lg bg-[#0B132B]/5">
+                  <div className="text-[10px] uppercase tracking-widest text-amber-700">{s.season}</div>
+                  <div className="font-serif-display text-lg text-[#0B132B]">{fmtINR(s.revenue)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 glass-light rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif-display text-2xl text-[#0B132B]">Festival Revenue Calendar</h3>
+              <CalendarHeart className="w-4 h-4 text-amber-700" />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {festivals.map((f) => (
+                <div key={f.name} className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-white border border-amber-200">
+                  <div className="text-[10px] uppercase tracking-widest text-amber-700 mb-1">{f.months.join(" / ")}</div>
+                  <div className="font-serif-display text-xl text-[#0B132B]">{f.name}</div>
+                  <div className="text-[#0B132B]/65 text-sm mt-1">{fmtINR(f.revenue)} aggregate revenue</div>
+                </div>
+              ))}
+              {festivals.length === 0 && <div className="text-[#0B132B]/55 text-sm col-span-2">No festival data yet.</div>}
+            </div>
+          </div>
+        </div>
+
         <div className="flex gap-2 mb-6 flex-wrap">
           {[
             ["overview", "Overview"],
             ["bookings", `Bookings (${bookings.length})`],
             ["refunds", `Refunds (${refunds.length})`],
             ["emails", `Email Logs (${emails.length})`],
-            ["exports", "Exports"],
+            ["financials", `Financials (${financials.length})`],
+            ["exports", "Exports & Import"],
           ].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)} data-testid={`admin-tab-${v}`}
               className={`px-4 py-2 rounded-full text-sm ${tab === v ? "bg-amber-400 text-[#0B132B]" : "glass-light text-[#0B132B]/80"}`}>{l}</button>
@@ -207,20 +320,66 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {tab === "exports" && <ExportsPanel />}
+        {tab === "financials" && (
+          <FinancialsPanel rows={financials} onChange={setFinancials} />
+        )}
+
+        {tab === "exports" && <ExportsPanel onImported={async () => {
+          const r = await api.get("/admin/financial-records"); setFinancials(r.data);
+        }} />}
       </div>
     </div>
   );
 }
 
-function ExportsPanel() {
+function FinancialsPanel({ rows, onChange }) {
+  const total = rows.reduce((a, r) => a + (r.revenue_inr || 0), 0);
+  const totalRef = rows.reduce((a, r) => a + (r.refunds_inr || 0), 0);
+  return (
+    <div className="space-y-4" data-testid="financials-panel">
+      <div className="grid md:grid-cols-3 gap-4">
+        <div className="glass-light rounded-2xl p-5">
+          <div className="text-[10px] tracking-[0.3em] uppercase text-amber-700">Records</div>
+          <div className="font-serif-display text-3xl text-[#0B132B]">{rows.length}</div>
+        </div>
+        <div className="glass-light rounded-2xl p-5">
+          <div className="text-[10px] tracking-[0.3em] uppercase text-amber-700">Total Revenue (Hardcoded + Imported)</div>
+          <div className="font-serif-display text-3xl text-[#0B132B]">{fmtINR(total)}</div>
+        </div>
+        <div className="glass-light rounded-2xl p-5">
+          <div className="text-[10px] tracking-[0.3em] uppercase text-amber-700">Total Refunds</div>
+          <div className="font-serif-display text-3xl text-[#0B132B]">{fmtINR(totalRef)}</div>
+        </div>
+      </div>
+      <Table head={["Month", "Kind", "Route", "Revenue", "Refunds", "Net", "Margin %", "Season"]}>
+        {rows.map((r) => (
+          <tr key={r.id} className="border-t border-[#E5E1D6]">
+            <td className="p-3 font-mono-aero text-amber-700">{r.month}</td>
+            <td className="p-3 text-[#0B132B]/80">{r.kind}</td>
+            <td className="p-3 text-[#0B132B]/80">{r.route}</td>
+            <td className="p-3 text-[#0B132B]">{fmtINR(r.revenue_inr || 0)}</td>
+            <td className="p-3 text-red-700">{fmtINR(r.refunds_inr || 0)}</td>
+            <td className="p-3 text-emerald-700">{fmtINR(r.net_inr || 0)}</td>
+            <td className="p-3 text-[#0B132B]/80">{r.profit_margin_pct || 0}%</td>
+            <td className="p-3"><span className={`px-2 py-0.5 text-[10px] rounded-full uppercase ${r.season === "Peak" ? "bg-amber-400/20 text-amber-700" : r.season === "Mid" ? "bg-sky-400/20 text-sky-700" : "bg-slate-400/20 text-slate-700"}`}>{r.season}</span></td>
+          </tr>
+        ))}
+      </Table>
+    </div>
+  );
+}
+
+function ExportsPanel({ onImported }) {
   const kinds = [
     { v: "bookings", l: "Bookings", desc: "PNR, customer, route, status, amount" },
     { v: "payments", l: "Payments", desc: "Transactions, methods, banks, status" },
     { v: "customers", l: "Customers", desc: "Profile + loyalty tier + points" },
     { v: "refunds", l: "Refunds", desc: "Refund IDs, amounts, status" },
     { v: "flights", l: "Flights", desc: "Schedule, aircraft, seats, prices" },
+    { v: "financials", l: "Financial Records", desc: "Route P&L, margin, seasons" },
   ];
+  const [importBusy, setImportBusy] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
 
   const download = async (kind, fmt) => {
     const token = localStorage.getItem("av_token");
@@ -234,6 +393,39 @@ function ExportsPanel() {
     a.href = URL.createObjectURL(blob);
     a.download = `aerovista-${kind}.${fmt}`;
     document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  // Lightweight CSV parser (no XLSX import to avoid extra deps — user can paste/upload CSV)
+  const parseCSV = (text) => {
+    const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+    return lines.slice(1).map((line) => {
+      // Simple split — assumes no embedded commas in quoted cells
+      const cells = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+      const row = {};
+      headers.forEach((h, i) => { row[h] = cells[i] || ""; });
+      return row;
+    });
+  };
+
+  const onImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportBusy(true); setImportMsg("");
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      if (!rows.length) { setImportMsg("No rows detected. Use the CSV template (Month, Kind, Route, Revenue (INR), Refunds (INR), Profit Margin %, Season)."); return; }
+      const r = await api.post("/admin/financial-records/import", { rows });
+      setImportMsg(`Imported: ${r.data.inserted} new, ${r.data.updated} updated.`);
+      onImported && (await onImported());
+    } catch (err) {
+      setImportMsg("Import failed: " + (err?.response?.data?.detail || err.message));
+    } finally {
+      setImportBusy(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -270,6 +462,24 @@ function ExportsPanel() {
             <Download className="w-3.5 h-3.5" /> Excel
           </button>
         </div>
+      </div>
+
+      {/* Financial CSV Import */}
+      <div className="glass-light rounded-2xl p-6 md:col-span-2 border border-emerald-500/40 bg-gradient-to-br from-emerald-500/8 to-emerald-500/0">
+        <div className="text-emerald-700 text-[10px] tracking-[0.3em] uppercase mb-2">Import</div>
+        <h3 className="font-serif-display text-2xl text-[#0B132B]">Upload Financial Records (CSV)</h3>
+        <p className="text-[#0B132B]/65 text-sm mt-1">Use columns: <code className="font-mono-aero text-xs text-amber-700">Month, Kind, Route, Revenue (INR), Refunds (INR), Profit Margin %, Season</code>. Existing month + route + kind rows are updated; new ones are inserted.</p>
+        <div className="mt-4 flex flex-wrap gap-2 items-center">
+          <label className="text-xs px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white font-semibold inline-flex items-center gap-2 cursor-pointer transition">
+            <Upload className="w-3.5 h-3.5" /> {importBusy ? "Importing…" : "Choose CSV"}
+            <input type="file" accept=".csv,text/csv" data-testid="import-financials"
+              onChange={onImportFile} className="hidden" disabled={importBusy} />
+          </label>
+          <button onClick={() => download("financials", "csv")} className="text-xs px-4 py-2 rounded-full glass-light hover:bg-[#0B132B]/12 text-[#0B132B] inline-flex items-center gap-2">
+            <Download className="w-3.5 h-3.5" /> Download Template
+          </button>
+        </div>
+        {importMsg && <div className="mt-3 text-sm text-[#0B132B]/80">{importMsg}</div>}
       </div>
     </div>
   );

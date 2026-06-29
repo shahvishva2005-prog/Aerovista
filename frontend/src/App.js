@@ -1,7 +1,9 @@
 import "./App.css";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "./lib/auth";
+import { api } from "./lib/api";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -19,6 +21,7 @@ import Fleet from "./pages/Fleet";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Careers from "./pages/Careers";
+import Reviews from "./pages/Reviews";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -42,6 +45,12 @@ function PrivateRoute({ children, roles }) {
 function Shell() {
   const loc = useLocation();
   const hideShell = loc.pathname === "/login" || loc.pathname === "/register" || loc.pathname === "/forgot-password" || loc.pathname === "/reset-password";
+
+  // Lightweight traffic pixel — pings backend on every route change for the admin Traffic chart.
+  useEffect(() => {
+    api.post("/track/event", { path: loc.pathname }).catch(() => {});
+  }, [loc.pathname]);
+
   return (
     <>
       {!hideShell && <Navbar />}
@@ -60,6 +69,7 @@ function Shell() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/careers" element={<Careers />} />
+        <Route path="/reviews" element={<Reviews />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

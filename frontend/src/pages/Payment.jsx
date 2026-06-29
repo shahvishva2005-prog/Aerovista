@@ -25,7 +25,9 @@ export default function Payment() {
   const [method, setMethod] = useState("credit_card");
   const [cardHolder, setCardHolder] = useState("");
   const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
+  const [billingZip, setBillingZip] = useState("");
   const [bank, setBank] = useState("HDFC");
   const [upi, setUpi] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,13 +39,40 @@ export default function Payment() {
 
   if (!booking) return <div className="pt-32 text-center text-[#0B132B]/72">Loading…</div>;
 
+  const validate = () => {
+    if (method === "credit_card" || method === "debit_card") {
+      if (!cardHolder.trim()) return "Card holder name is required";
+      const digits = cardNumber.replace(/\s/g, "");
+      if (digits.length < 13 || digits.length > 19 || !/^\d+$/.test(digits))
+        return "Enter a valid card number (13–19 digits)";
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry))
+        return "Expiry must be in MM/YY format";
+      // Reject expired cards
+      const [mm, yy] = cardExpiry.split("/").map(Number);
+      const expYear = 2000 + yy;
+      const expEnd = new Date(expYear, mm, 0, 23, 59, 59);
+      if (expEnd < new Date()) return "Card has expired";
+      if (cardCvv.length < 3) return "Enter a valid CVV";
+      if (!billingZip.trim()) return "Billing ZIP / postal code is required";
+    }
+    if (method === "upi") {
+      if (!/^[a-zA-Z0-9._-]+@[a-zA-Z]+$/.test(upi)) return "Enter a valid UPI ID (e.g. name@bank)";
+    }
+    if (method === "net_banking" && !bank) return "Please select a bank";
+    return null;
+  };
+
   const pay = async () => {
-    setErr(""); setBusy(true);
+    setErr("");
+    const v = validate();
+    if (v) { setErr(v); return; }
+    setBusy(true);
     try {
       const last4 = (cardNumber || "").replace(/\s/g, "").slice(-4);
       const r = await api.post(`/bookings/${bookingId}/pay`, {
         booking_id: bookingId, method, bank,
-        card_holder: cardHolder, card_number_last4: last4, upi_id: upi,
+        card_holder: cardHolder, card_number_last4: last4, card_expiry: cardExpiry,
+        upi_id: upi, billing_zip: billingZip,
       });
       nav(`/booking/${bookingId}?paid=1&points=${r.data.points_earned}`);
     } catch (e) {
@@ -54,7 +83,7 @@ export default function Payment() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16" data-testid="payment-page">
+    <div className="min-h-screen pt-24 pb-16 av-bg-booking" data-testid="payment-page">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="mb-8">
           <div className="text-amber-700 text-xs tracking-[0.3em] uppercase mb-3">Step 4 of 4 • Payment</div>
@@ -77,11 +106,16 @@ export default function Payment() {
 
               {(method === "credit_card" || method === "debit_card") && (
                 <div className="grid md:grid-cols-12 gap-3">
-                  <Input label="Card Holder Name" col="md:col-span-12" value={cardHolder} onChange={setCardHolder} testId="card-holder" />
-                  <Input label="Card Number" col="md:col-span-7" value={cardNumber} onChange={(v) => setCardNumber(v.replace(/[^0-9 ]/g, "").slice(0, 19))} placeholder="4242 4242 4242 4242" testId="card-number" />
-                  <Input label="Expiry" col="md:col-span-3" placeholder="MM/YY" />
-                  <Input label="CVV" col="md:col-span-2" value={cardCvv} onChange={(v) => setCardCvv(v.replace(/\D/g, "").slice(0, 4))} testId="card-cvv" type="password" />
-                  <div className="md:col-span-12">
+                  <Input label="Card Holder Name *" col="md:col-span-12" value={cardHolder} onChange={setCardHolder} testId="card-holder" required />
+                  <Input label="Card Number *" col="md:col-span-7" value={cardNumber} onChange={(v) => setCardNumber(v.replace(/[^0-9 ]/g, "").slice(0, 19))} placeholder="4242 4242 4242 4242" testId="card-number" required />
+                  <Input label="Expiry *" col="md:col-span-3" placeholder="MM/YY" value={cardExpiry}
+                    onChange={(v) => {
+                      const d = v.replace(/[^\d]/g, "").slice(0, 4);
+                      setCardExpiry(d.length >= 3 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                    }} testId="card-expiry" required />
+                  <Input label="CVV *" col="md:col-span-2" value={cardCvv} onChange={(v) => setCardCvv(v.replace(/\D/g, "").slice(0, 4))} testId="card-cvv" type="password" required />
+                  <Input label="Billing ZIP / Postal Code *" col="md:col-span-6" value={billingZip} onChange={setBillingZip} testId="billing-zip" required />
+                  <div className="md:col-span-6">
                     <label className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">Bank (for offers)</label>
                     <select value={bank} onChange={(e) => setBank(e.target.value)} data-testid="bank-select"
                       className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-3 py-3 text-[#0B132B] text-sm">
@@ -151,11 +185,11 @@ export default function Payment() {
   );
 }
 
-function Input({ label, value = "", onChange = () => {}, col = "", type = "text", placeholder, testId }) {
+function Input({ label, value = "", onChange = () => {}, col = "", type = "text", placeholder, testId, required = false }) {
   return (
     <div className={col}>
       <label className="text-[10px] tracking-[0.2em] uppercase text-[#0B132B]/60 mb-1.5 block">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} data-testid={testId}
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} data-testid={testId} required={required}
         className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg px-4 py-3 text-[#0B132B] text-sm focus:border-amber-400 outline-none" />
     </div>
   );

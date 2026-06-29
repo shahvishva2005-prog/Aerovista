@@ -21,7 +21,7 @@ load_dotenv(ROOT_DIR / ".env")
 from models import (
     RegisterReq, LoginReq, TokenRes, FlightSearchReq,
     CreateBookingReq, PaymentReq, RefundReq, RescheduleReq, CheckInReq, TrackReq,
-    ForgotPwdReq, ResetPwdReq,
+    ForgotPwdReq, ResetPwdReq, ReviewReq, CareerApplicationReq,
     gen_id, now_iso,
 )
 from auth import hash_password, verify_password, create_token, get_current_user, require_roles
@@ -105,7 +105,9 @@ async def admin_seed(force: bool = False):
         ]}})
         for coll in ["flights", "aircraft", "pilots", "cabin_crew",
                      "bookings", "payments", "refunds", "email_logs",
-                     "notifications", "loyalty", "audit_logs"]:
+                     "notifications", "loyalty", "audit_logs",
+                     "financial_records", "reviews", "career_applications",
+                     "traffic_events"]:
             await db[coll].delete_many({})
 
     now = datetime.now(timezone.utc)
@@ -157,9 +159,13 @@ async def admin_seed(force: bool = False):
     await db.aircraft.insert_many(aircraft_docs)
 
     # ===== Pilots & Crew records =====
-    pilot_names = ["Vikram Singh", "Aarav Patel", "Rohan Nair", "Karan Kapoor",
-                   "Aditya Bose", "Sahil Khanna", "Mihir Joshi", "Arjun Reddy",
-                   "Dev Malhotra", "Ishaan Verma"]
+    pilot_names = [
+        "Vikram Singh", "Aarav Patel", "Rohan Nair", "Karan Kapoor",
+        "Aditya Bose", "Sahil Khanna", "Mihir Joshi", "Arjun Reddy",
+        "Dev Malhotra", "Ishaan Verma", "Rajat Sinha", "Yash Chauhan",
+        "Aniket Deshmukh", "Pranav Mishra", "Siddharth Rao", "Aryan Kulkarni",
+        "Nikhil Trivedi", "Varun Bhatt", "Sameer Walia", "Tushar Saxena",
+    ]
     pilots = []
     for i, n in enumerate(pilot_names, 1):
         pilots.append({
@@ -174,8 +180,12 @@ async def admin_seed(force: bool = False):
         })
     await db.pilots.insert_many(pilots)
 
-    crew_names = ["Priya Iyer", "Neha Gupta", "Tanya Bose", "Sneha Roy", "Riya Das",
-                  "Aanya Khan", "Meera Pillai", "Anvi Shah", "Diya Chopra", "Kriti Sen"]
+    crew_names = [
+        "Priya Iyer", "Neha Gupta", "Tanya Bose", "Sneha Roy", "Riya Das",
+        "Aanya Khan", "Meera Pillai", "Anvi Shah", "Diya Chopra", "Kriti Sen",
+        "Ishita Menon", "Nandini Joshi", "Pooja Banerjee", "Rhea Saxena", "Tanvi Kapoor",
+        "Aditi Rao", "Shreya Malhotra", "Trisha Khanna", "Bhavna Reddy", "Lavanya Pillai",
+    ]
     crew_docs = []
     for i, n in enumerate(crew_names, 1):
         crew_docs.append({
@@ -323,6 +333,67 @@ async def admin_seed(force: bool = False):
     if flights:
         await db.flights.insert_many(flights)
 
+    # ===== Financial Records (20 hardcoded for analysis) =====
+    fin_records = [
+        # (month, type, route, revenue, refunds, profit_margin_pct, season)
+        ("2025-09", "Route P&L", "DEL-BOM", 1850000, 42000, 18.5, "Off"),
+        ("2025-09", "Route P&L", "DEL-BLR", 1620000, 31000, 16.2, "Off"),
+        ("2025-09", "Route P&L", "BOM-DXB", 4250000, 88000, 22.8, "Off"),
+        ("2025-10", "Route P&L", "DEL-BOM", 2110000, 51000, 19.4, "Mid"),
+        ("2025-10", "Route P&L", "DEL-JFK", 6700000, 121000, 24.5, "Mid"),
+        ("2025-10", "Route P&L", "BOM-SIN", 3920000, 74000, 21.6, "Mid"),
+        ("2025-11", "Route P&L", "DEL-LHR", 7850000, 145000, 26.1, "Peak"),
+        ("2025-11", "Route P&L", "DEL-BOM", 2950000, 68000, 22.2, "Peak"),
+        ("2025-11", "Route P&L", "BLR-SIN", 4480000, 92000, 23.0, "Peak"),
+        ("2025-12", "Route P&L", "DEL-DXB", 5210000, 110000, 25.4, "Peak"),
+        ("2025-12", "Route P&L", "DEL-CDG", 7120000, 138000, 25.9, "Peak"),
+        ("2025-12", "Route P&L", "BOM-FRA", 6650000, 128000, 24.8, "Peak"),
+        ("2026-01", "Route P&L", "DEL-BOM", 2240000, 52000, 19.8, "Mid"),
+        ("2026-01", "Route P&L", "DEL-HKG", 5380000, 96000, 23.4, "Mid"),
+        ("2026-01", "Route P&L", "BOM-DOH", 4810000, 88000, 22.7, "Mid"),
+        ("2026-02", "Route P&L", "DEL-BKK", 3950000, 74000, 21.2, "Mid"),
+        ("2026-02", "Route P&L", "BLR-BOM", 1480000, 32000, 17.5, "Mid"),
+        ("2026-02", "Route P&L", "MAA-BOM", 1280000, 28000, 16.8, "Mid"),
+        ("2026-02", "Refund Summary", "ALL", 0, 1342000, 0, "Mid"),
+        ("2026-02", "Operating Cost", "FUEL", 0, 0, 0, "Mid"),
+    ]
+    fin_docs = []
+    for m, kind, route, rev, refs, pm, season in fin_records:
+        fin_docs.append({
+            "id": gen_id(),
+            "month": m,
+            "kind": kind,
+            "route": route,
+            "revenue_inr": rev,
+            "refunds_inr": refs,
+            "net_inr": rev - refs,
+            "profit_margin_pct": pm,
+            "season": season,
+            "created_at": now.isoformat(),
+        })
+    await db.financial_records.insert_many(fin_docs)
+
+    # ===== Traffic Events (30 days of synthetic site traffic) =====
+    today = now.date()
+    traffic_docs = []
+    for d in range(0, 30):
+        day = today - timedelta(days=29 - d)
+        # Peak traffic on weekends + festive months
+        base = random.randint(1200, 1800)
+        if day.weekday() in (4, 5, 6):
+            base = int(base * 1.4)
+        if day.month in (11, 12, 3):
+            base = int(base * 1.25)
+        traffic_docs.append({
+            "id": gen_id(),
+            "date": day.isoformat(),
+            "page_views": base,
+            "unique_visitors": int(base * random.uniform(0.55, 0.72)),
+            "sessions": int(base * random.uniform(0.7, 0.85)),
+            "bounce_rate": round(random.uniform(28, 45), 1),
+        })
+    await db.traffic_events.insert_many(traffic_docs)
+
     return {
         "message": "Seeded",
         "users": 4,
@@ -330,6 +401,8 @@ async def admin_seed(force: bool = False):
         "pilots": len(pilots),
         "crew": len(crew_docs),
         "flights": len(flights),
+        "financial_records": len(fin_docs),
+        "traffic_events": len(traffic_docs),
     }
 
 
@@ -427,6 +500,9 @@ async def search_flights(req: FlightSearchReq):
         "destination": req.destination.upper(),
         "departure_date": req.departure_date,
     }
+    # Real-time filter: hide flights whose departure has already passed
+    now = datetime.now(timezone.utc)
+    query["departure_iso"] = {"$gte": now.isoformat()}
     flights = await db.flights.find(query, PROJECT_NO_ID).sort("departure_time", 1).to_list(100)
     # Apply dynamic pricing per flight
     enriched = []
@@ -495,13 +571,24 @@ async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
     if not flight:
         raise HTTPException(status_code=404, detail="Flight not found")
 
-    # Recompute pricing
+    # Real-time guard: cannot book a flight whose departure has already passed
     dep_dt = datetime.fromisoformat(flight["departure_iso"])
+    now = datetime.now(timezone.utc)
+    if dep_dt <= now:
+        raise HTTPException(status_code=400,
+                            detail="This flight has already departed. Please pick an upcoming flight.")
+
+    # Recompute pricing
     ratio = (flight.get("available_seats", 1) or 1) / max(1, flight.get("total_seats", 1))
     mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
     base_per_pax, _ = _calc_dynamic_price(flight["base_price"] * mult, dep_dt, ratio)
     n_pax = len(req.passengers)
     base = round(base_per_pax * n_pax, 2)
+
+    # Concession: 20% off for medical personnel + armed forces per qualifying pax
+    concession_pax = sum(1 for p in req.passengers if p.is_medical or p.is_armed_forces)
+    concession = round(base_per_pax * 0.20 * concession_pax, 2)
+
     addons = 0
     if req.add_baggage:
         addons += 800 * n_pax
@@ -510,16 +597,21 @@ async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
     # meals
     addons += 350 * len([m for m in req.meal_preferences if m and m != "standard"])
 
-    discount = 0
+    discount = concession
     promo = (req.promo_code or "").upper().strip()
     if promo == "HDFC10":
-        discount = round(base * 0.10, 2)
+        discount += round(base * 0.10, 2)
     elif promo == "ICICI200":
-        discount = 200
+        discount += 200
     elif promo == "AXIS5":
-        discount = round(base * 0.05, 2)
+        discount += round(base * 0.05, 2)
     elif promo == "SBI500":
-        discount = 500
+        discount += 500
+
+    # Corporate discount: flat 5% off base when corporate block present
+    corporate_block = (req.billing.model_dump().get("corporate") or {}) if req.billing else {}
+    if corporate_block and corporate_block.get("company_name"):
+        discount += round(base * 0.05, 2)
 
     tax_rate = 0.05 if req.cabin_class == "economy" else 0.12
     taxes = round((base + addons - discount) * tax_rate, 2)
@@ -546,7 +638,8 @@ async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
         "boarding_pass_number": _gen_codes("BP", 7),
         "fare": {
             "base": base, "base_per_pax": base_per_pax, "addons": addons,
-            "discount": discount, "taxes": taxes, "convenience": convenience, "total": total,
+            "discount": discount, "concession": concession,
+            "taxes": taxes, "convenience": convenience, "total": total,
         },
         "status": "pending_payment",
         "payment_status": "pending",
@@ -1024,12 +1117,23 @@ async def _export_flights_rows():
              "Base Price": f.get("base_price"), "Status": f.get("status")} for f in items]
 
 
+async def _export_financials_rows():
+    items = await db.financial_records.find({}, PROJECT_NO_ID).sort("month", 1).limit(5000).to_list(5000)
+    return [{
+        "Month": r.get("month"), "Kind": r.get("kind"), "Route": r.get("route"),
+        "Revenue (INR)": r.get("revenue_inr"), "Refunds (INR)": r.get("refunds_inr"),
+        "Net (INR)": r.get("net_inr"), "Profit Margin %": r.get("profit_margin_pct"),
+        "Season": r.get("season"),
+    } for r in items]
+
+
 EXPORT_MAP = {
     "bookings": (_export_bookings_rows, None),
     "payments": (_export_payments_rows, None),
     "customers": (_export_customers_rows, None),
     "refunds": (_export_refunds_rows, None),
     "flights": (_export_flights_rows, None),
+    "financials": (_export_financials_rows, None),
 }
 
 
@@ -1134,10 +1238,27 @@ async def reset_password(req: ResetPwdReq):
 @api.get("/pilot/flights")
 async def pilot_flights(user=Depends(require_roles("pilot"))):
     pilot = await db.pilots.find_one({"name": user["name"]}, PROJECT_NO_ID)
+    if not pilot:
+        # Fallback: assign the seeded "pilot@aerovista.com" account to the first roster pilot
+        pilot = await db.pilots.find_one({}, PROJECT_NO_ID, sort=[("employee_id", 1)])
     pilot_id = pilot["id"] if pilot else None
     query = {"pilot_id": pilot_id} if pilot_id else {}
     items = await db.flights.find(query, PROJECT_NO_ID).sort("departure_iso", 1).limit(50).to_list(50)
-    return {"pilot": pilot, "flights": items}
+
+    # Hydrate the crew list for each assigned flight
+    crew_ids = []
+    for f in items:
+        crew_ids += f.get("crew_ids", [])
+    crew_by_id = {}
+    if crew_ids:
+        crew_docs = await db.cabin_crew.find({"id": {"$in": list(set(crew_ids))}}, PROJECT_NO_ID).to_list(200)
+        crew_by_id = {c["id"]: c for c in crew_docs}
+    for f in items:
+        f["crew"] = [crew_by_id.get(cid) for cid in f.get("crew_ids", []) if crew_by_id.get(cid)]
+
+    # All cabin crew on roster (for the "Roster" tab on the portal)
+    roster = await db.cabin_crew.find({}, PROJECT_NO_ID).sort("employee_id", 1).to_list(200)
+    return {"pilot": pilot, "flights": items, "cabin_crew_roster": roster}
 
 
 # ===== Crew Portal =====
@@ -1164,6 +1285,279 @@ async def crew_manifest(flight_id: str, user=Depends(require_roles("crew", "admi
 @api.get("/crew/flights")
 async def crew_flights(user=Depends(require_roles("crew", "admin"))):
     items = await db.flights.find({}, PROJECT_NO_ID).sort("departure_iso", 1).limit(50).to_list(50)
+    return items
+
+
+# ===== Traffic Pixel (public, no auth) =====
+@api.post("/track/event")
+async def track_event(payload: dict = Body(...)):
+    """Lightweight traffic-pixel endpoint. Frontend pings this on route changes
+    so the admin dashboard's traffic chart reflects real visits in addition to
+    the seeded baseline. Stores per-day rollups in `traffic_events`."""
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    path = (payload or {}).get("path", "/")[:120]
+    await db.traffic_events.update_one(
+        {"date": today_str, "live": True},
+        {"$inc": {"page_views": 1}, "$setOnInsert": {
+            "id": gen_id(),
+            "date": today_str,
+            "live": True,
+            "unique_visitors": 0,
+            "sessions": 0,
+            "bounce_rate": 0,
+        }, "$push": {"recent_paths": {"$each": [path], "$slice": -25}}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+# ===== Admin Extra Charts =====
+@api.get("/admin/charts/traffic")
+async def admin_charts_traffic(days: int = 30, user=Depends(require_roles("admin"))):
+    """Daily site traffic (page_views, unique_visitors) for the last N days."""
+    today = datetime.now(timezone.utc).date()
+    start_iso = (today - timedelta(days=days)).isoformat()
+    # Aggregate by date — combine seeded + live rows by date
+    pipe = [
+        {"$match": {"date": {"$gte": start_iso}}},
+        {"$group": {"_id": "$date",
+                    "page_views": {"$sum": "$page_views"},
+                    "unique_visitors": {"$sum": "$unique_visitors"},
+                    "sessions": {"$sum": "$sessions"}}},
+        {"$sort": {"_id": 1}},
+    ]
+    rows = await db.traffic_events.aggregate(pipe).to_list(500)
+    return [{"date": r["_id"], "page_views": r["page_views"],
+             "unique_visitors": r["unique_visitors"], "sessions": r["sessions"]} for r in rows]
+
+
+@api.get("/admin/charts/user-growth")
+async def admin_charts_user_growth(days: int = 30, user=Depends(require_roles("admin"))):
+    """Cumulative user signups for the last N days (customer role only)."""
+    today = datetime.now(timezone.utc).date()
+    pipe = [
+        {"$match": {"role": "customer"}},
+        {"$project": {"day": {"$substr": ["$created_at", 0, 10]}}},
+        {"$group": {"_id": "$day", "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}},
+    ]
+    rows = await db.users.aggregate(pipe).to_list(500)
+    by_day = {r["_id"]: r["count"] for r in rows}
+    series = []
+    cumulative = 0
+    # backfill: include any prior signups as base
+    for r in rows:
+        if r["_id"] < (today - timedelta(days=days)).isoformat():
+            cumulative += r["count"]
+    for i in range(days, -1, -1):
+        d = (today - timedelta(days=i)).isoformat()
+        cumulative += by_day.get(d, 0)
+        series.append({"date": d, "users": cumulative, "new": by_day.get(d, 0)})
+    return series
+
+
+@api.get("/admin/charts/seasons")
+async def admin_charts_seasons(user=Depends(require_roles("admin"))):
+    """Revenue split by Peak / Mid / Off season (uses financial_records.season)."""
+    pipe = [
+        {"$group": {"_id": "$season",
+                    "revenue": {"$sum": "$revenue_inr"},
+                    "refunds": {"$sum": "$refunds_inr"},
+                    "records": {"$sum": 1}}},
+    ]
+    rows = await db.financial_records.aggregate(pipe).to_list(10)
+    return [{"season": r["_id"] or "Off", "revenue": r["revenue"],
+             "refunds": r["refunds"], "records": r["records"]} for r in rows]
+
+
+@api.get("/admin/charts/festivals")
+async def admin_charts_festivals(user=Depends(require_roles("admin"))):
+    """Curated festival calendar with revenue uplift % proxy from financial_records."""
+    # Group by month; map Diwali (Oct-Nov), Christmas (Dec), Holi (Mar) etc.
+    festivals = [
+        {"name": "Diwali Travel", "months": ["2025-10", "2025-11"], "icon": "diya"},
+        {"name": "Christmas & New Year", "months": ["2025-12", "2026-01"], "icon": "tree"},
+        {"name": "Holi Getaway", "months": ["2026-03"], "icon": "colors"},
+        {"name": "Summer Family", "months": ["2026-05", "2026-06"], "icon": "sun"},
+        {"name": "Eid Travel", "months": ["2026-04"], "icon": "moon"},
+    ]
+    out = []
+    for f in festivals:
+        pipe = [
+            {"$match": {"month": {"$in": f["months"]}}},
+            {"$group": {"_id": None, "rev": {"$sum": "$revenue_inr"}}},
+        ]
+        agg = await db.financial_records.aggregate(pipe).to_list(1)
+        rev = agg[0]["rev"] if agg else 0
+        out.append({"name": f["name"], "revenue": rev, "months": f["months"], "icon": f["icon"]})
+    return out
+
+
+# ===== Financial Records (Read / Export / Import) =====
+@api.get("/admin/financial-records")
+async def admin_financial_records(user=Depends(require_roles("admin"))):
+    items = await db.financial_records.find({}, PROJECT_NO_ID).sort("month", 1).limit(500).to_list(500)
+    return items
+
+
+@api.post("/admin/financial-records/import")
+async def admin_financial_import(payload: dict = Body(...),
+                                 user=Depends(require_roles("admin"))):
+    """Import financial records from CSV/Excel content as JSON rows.
+
+    Body shape: {"rows": [{Month, Kind, Route, Revenue (INR), ...}, ...]}
+    Existing month+route+kind are upserted; new rows are inserted.
+    """
+    rows = payload.get("rows", [])
+    if not isinstance(rows, list):
+        raise HTTPException(status_code=400, detail="rows must be a list")
+    inserted = 0
+    updated = 0
+    for r in rows:
+        try:
+            month = str(r.get("Month") or r.get("month") or "").strip()
+            kind = str(r.get("Kind") or r.get("kind") or "Route P&L").strip()
+            route = str(r.get("Route") or r.get("route") or "ALL").strip()
+            rev = float(r.get("Revenue (INR)") or r.get("revenue_inr") or 0)
+            refs = float(r.get("Refunds (INR)") or r.get("refunds_inr") or 0)
+            pm = float(r.get("Profit Margin %") or r.get("profit_margin_pct") or 0)
+            season = str(r.get("Season") or r.get("season") or "Off").strip()
+            if not month:
+                continue
+            doc = {
+                "month": month, "kind": kind, "route": route,
+                "revenue_inr": rev, "refunds_inr": refs, "net_inr": rev - refs,
+                "profit_margin_pct": pm, "season": season,
+                "imported_at": now_iso(),
+            }
+            res = await db.financial_records.update_one(
+                {"month": month, "kind": kind, "route": route},
+                {"$set": doc, "$setOnInsert": {"id": gen_id(), "created_at": now_iso()}},
+                upsert=True,
+            )
+            if res.upserted_id:
+                inserted += 1
+            elif res.modified_count:
+                updated += 1
+        except Exception as e:
+            logger.warning(f"Skipped row: {e}")
+    return {"ok": True, "inserted": inserted, "updated": updated, "total": len(rows)}
+
+
+# ===== Reviews =====
+@api.post("/reviews")
+async def submit_review(req: ReviewReq):
+    """Public reviews endpoint — stores in db.reviews and emails airlinesaerovista@gmail.com."""
+    doc = {
+        "id": gen_id(),
+        "name": req.name, "email": req.email,
+        "rating": req.rating,
+        "flight_number": req.flight_number or "",
+        "pnr": req.pnr or "",
+        "title": req.title,
+        "review": req.review,
+        "created_at": now_iso(),
+        "published": True,
+    }
+    await db.reviews.insert_one(doc.copy())
+    safe = {k: v for k, v in doc.items() if k != "_id"}
+
+    # Notify admin inbox
+    subj = f"[Review] {req.rating}★ — {req.title}"
+    body = email_mod._wrap_template(
+        "New Customer Review",
+        f"<p><strong>{req.name}</strong> &lt;{req.email}&gt; rated <strong>{req.rating}/5</strong></p>"
+        f"<p><strong>Flight:</strong> {req.flight_number or '-'} &nbsp; <strong>PNR:</strong> {req.pnr or '-'}</p>"
+        f"<p><strong>{req.title}</strong></p>"
+        f"<blockquote style='border-left:3px solid #D4AF37;padding-left:14px;color:#333;'>{req.review}</blockquote>",
+    )
+    await email_mod.send_email(db, "airlinesaerovista@gmail.com", subj, body, category="review")
+    # Also email a thank-you to the reviewer
+    thanks_subj = "Thank you for your AeroVista review"
+    thanks_body = email_mod._wrap_template(
+        f"Thank you, {req.name}",
+        f"<p>Your {req.rating}-star review has been received. Our team reads every word — it helps us serve you better above and beyond.</p>",
+    )
+    await email_mod.send_email(db, req.email, thanks_subj, thanks_body, category="review_ack")
+    return safe
+
+
+@api.get("/reviews")
+async def list_reviews(limit: int = 50):
+    items = await db.reviews.find({"published": True}, PROJECT_NO_ID).sort("created_at", -1).limit(limit).to_list(limit)
+    return items
+
+
+@api.get("/admin/reviews")
+async def admin_reviews(user=Depends(require_roles("admin"))):
+    items = await db.reviews.find({}, PROJECT_NO_ID).sort("created_at", -1).limit(500).to_list(500)
+    return items
+
+
+# ===== Careers =====
+@api.post("/careers/apply")
+async def career_apply(req: CareerApplicationReq):
+    """Public career application endpoint. Stores in db.career_applications,
+    emails airlinesaerovista@gmail.com with resume attached (PDF, ≤5MB)."""
+    import base64
+    resume_bytes = b""
+    if req.resume_base64:
+        try:
+            resume_bytes = base64.b64decode(req.resume_base64)
+            if len(resume_bytes) > 5 * 1024 * 1024:
+                raise HTTPException(status_code=400, detail="Resume must be ≤ 5MB")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid resume encoding")
+
+    doc = {
+        "id": gen_id(),
+        "name": req.name, "email": req.email, "mobile": req.mobile,
+        "role_applied": req.role_applied,
+        "experience_years": req.experience_years,
+        "current_company": req.current_company or "",
+        "cover_letter": req.cover_letter,
+        "resume_filename": req.resume_filename or "",
+        "resume_size_bytes": len(resume_bytes),
+        "status": "Received",
+        "created_at": now_iso(),
+    }
+    await db.career_applications.insert_one(doc.copy())
+
+    # Notify careers inbox with resume attachment
+    attachments = []
+    if resume_bytes and req.resume_filename:
+        attachments.append((req.resume_filename, resume_bytes))
+    subj = f"[Careers] {req.role_applied} — {req.name}"
+    body = email_mod._wrap_template(
+        f"New Application: {req.role_applied}",
+        f"<p><strong>{req.name}</strong> &lt;{req.email}&gt; • {req.mobile}</p>"
+        f"<p><strong>Experience:</strong> {req.experience_years} yrs &nbsp; "
+        f"<strong>Current Company:</strong> {req.current_company or '-'}</p>"
+        f"<p><strong>Cover Letter</strong></p>"
+        f"<blockquote style='border-left:3px solid #D4AF37;padding-left:14px;color:#333;'>{req.cover_letter}</blockquote>"
+        f"<p style='color:#777;font-size:12px;'>Resume attached: {req.resume_filename or 'none'}</p>",
+    )
+    await email_mod.send_email(db, "airlinesaerovista@gmail.com", subj, body,
+                               attachments=attachments, category="career_application")
+    # Acknowledgement to applicant
+    ack_subj = f"We've received your application — {req.role_applied}"
+    ack_body = email_mod._wrap_template(
+        f"Hello {req.name}",
+        f"<p>Thank you for applying for the <strong>{req.role_applied}</strong> role at AeroVista Airlines.</p>"
+        f"<p>Our People & Culture team reviews every application within 7 business days. "
+        f"If your profile matches, you'll hear from us with next steps.</p>",
+    )
+    await email_mod.send_email(db, req.email, ack_subj, ack_body, category="career_ack")
+
+    safe = {k: v for k, v in doc.items() if k != "_id"}
+    return safe
+
+
+@api.get("/admin/career-applications")
+async def admin_career_apps(user=Depends(require_roles("admin"))):
+    items = await db.career_applications.find({}, PROJECT_NO_ID).sort("created_at", -1).limit(500).to_list(500)
     return items
 
 
