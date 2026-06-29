@@ -1,7 +1,7 @@
 import axios from "axios";
 
-// Absolute path assignment map to avoid CDN relative path loops
-const BASE_BACKEND_URL = "https://aerovista-backend.onrender.com";
+// 🌟 THE CORRECTION: Pointing explicitly to your true, live primary backend hostname URL
+const BASE_BACKEND_URL = "https://aerovista.onrender.com";
 
 export const API = `${BASE_BACKEND_URL}/api`;
 
@@ -9,7 +9,7 @@ export const api = axios.create({
     baseURL: API 
 });
 
-// Authentication and token binding interceptor
+// Authentication request interceptor
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem("av_token");
     if (token) {
@@ -18,7 +18,7 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Automatic session clearing interceptor for 401 statuses
+// Automatic session expiry handler
 api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -33,13 +33,13 @@ api.interceptors.response.use(
     }
 );
 
-// Currency formatting utility
+// Unified Currency Formatter Component Utility
 export function fmtINR(n) {
     if (n == null || isNaN(n)) return "₹0";
     return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 
-// Date localized layout transformation tool
+// Global Localized Date Transform Parser Utility Node 
 export function fmtDate(d) {
     if (!d) return "";
     try { 
