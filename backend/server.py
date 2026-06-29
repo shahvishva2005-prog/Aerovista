@@ -1,8 +1,9 @@
-"""AeroVista Airlines - FastAPI Unified Core Backend Engine.
+"""AeroVista Airlines - FastAPI Core Backend Engine.
 All routes are mounted dynamically under both /api and root paths to handle mixed frontend targets.
 """
 import os
 import io
+import math
 import random
 import logging
 from datetime import datetime, timedelta, timezone
@@ -39,7 +40,7 @@ db = client[os.environ["DB_NAME"]]
 # 🌟 APPLICATION INITIALIZATION 
 app = FastAPI(title="AeroVista Airlines API")
 
-# 🔒 STEP 1: DEFINE MIDDLEWARE WITH STANDARD COMPATIBILITY FLAGS
+# 🔒 STEP 1: MOUNT ROBUST MIDDLEWARE ENGINE
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -48,10 +49,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🛠️ GLOBAL EXCEPTION HANDLING INTERCEPTOR FOR CORS SAFETY
+# 🛠️ STEP 2: MANDATORY CORS ERROR BINDING EXCEPTION HANDLER
 @app.exception_handler(HTTPException)
-async def cors_http_exception_handler(request, exc):
-    """Guarantees that error states (401, 403, 404) retain valid CORS headers for the browser."""
+async def cors_error_protection_handler(request, exc):
     response = JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail, "success": False}
@@ -61,17 +61,16 @@ async def cors_http_exception_handler(request, exc):
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
-# 🚀 EXPLICIT PREFLIGHT ROUTE OVERRIDE
+# 🚀 STEP 3: EXPLICIT PREFLIGHT OPTIONS ABSORBER
 @app.options("/{rest_of_path:path}")
-async def preflight_fallback_handler(rest_of_path: str):
-    """Explicitly absorbs browser OPTIONS calls that might drop past Starlette's inner engine middleware."""
-    response = JSONResponse(status_code=200, content={"status": "preflight_passed"})
+async def dynamic_preflight_override(rest_of_path: str):
+    response = JSONResponse(status_code=200, content={"status": "preflight_acknowledged"})
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
-# 🛠️ BASE ROUTER
+# 🛠️ CORE ROUTER OBJECT
 api = APIRouter()
 
 # Background scheduler — runs pre-departure upsell scan hourly
@@ -82,10 +81,35 @@ scheduler = AsyncIOScheduler()
 PROJECT_NO_ID = {"_id": 0}
 
 
-def _haversine_minutes(o_city: str, d_city: str) -> int:
-    """Rough flight time estimate based on city distance lookup (simplified)."""
-    base = abs(hash(o_city + d_city)) % 540 + 90  # 90 - 630 minutes
-    return base
+def _haversine_minutes(o_code: str, d_code: str) -> int:
+    """
+    🌟 FEATURE 1: Calculates exact real flight time using Great-Circle Distance 
+    derived from true coordinates, mapping a standard commercial speed average of 800 km/h.
+    """
+    o_air = airport_by_iata(o_code.upper())
+    d_air = airport_by_iata(d_code.upper())
+    
+    # Accurate coordinates fallback matrix map
+    coords = {
+        "DEL": (28.5562, 77.1000), "BOM": (19.0896, 72.8656), "BLR": (13.1986, 77.7066),
+        "DXB": (25.2532, 55.3657), "JFK": (40.6413, -73.7781), "LHR": (51.4700, -0.4543),
+        "SIN": (1.3644, 103.9915), "CDG": (49.0097, 2.5479), "FRA": (50.0379, 8.5622)
+    }
+    
+    lat1, lon1 = coords.get(o_code.upper(), (28.5, 77.1)) if not o_air else (o_air.get("lat", 28.5), o_air.get("lon", 77.1))
+    lat2, lon2 = coords.get(d_code.upper(), (19.0, 72.8)) if not d_air else (d_air.get("lat", 19.0), d_air.get("lon", 72.8))
+    
+    R = 6371.0  # Earth's radius in kilometers
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    distance_km = R * c
+    
+    # 800 km/h baseline + 20 minutes for take-off and landing runway queues
+    flight_time_mins = int((distance_km / 800.0) * 60) + 20
+    return max(45, flight_time_mins)  # Minimum 45-minute flight cushion threshold
 
 
 def _fmt_duration(mins: int) -> str:
@@ -93,7 +117,6 @@ def _fmt_duration(mins: int) -> str:
 
 
 def _calc_dynamic_price(base: float, departure_dt: datetime, seats_left_ratio: float) -> tuple:
-    """Compute dynamic price + reasons list."""
     reasons = []
     price = base
     if departure_dt.weekday() in (4, 5, 6):
@@ -122,7 +145,6 @@ def _calc_dynamic_price(base: float, departure_dt: datetime, seats_left_ratio: f
 
 # --- Dynamic Flight Generation Matrix Engine ---
 def _generate_flights_for_route(origin: str, destination: str, target_date_str: str) -> List[dict]:
-    """Generates exactly 4 consistent, unique flights for any route combination on a given day."""
     origin = origin.upper()
     destination = destination.upper()
     
@@ -133,14 +155,17 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
     random.seed(seed_val)
     
     schedules = [
-        {"flight_no": "100", "dep": "06:15", "arr": "08:45", "base": 4200},
-        {"flight_no": "320", "dep": "11:30", "arr": "14:00", "base": 5100},
-        {"flight_no": "540", "dep": "16:45", "arr": "19:15", "base": 6300},
-        {"flight_no": "980", "dep": "21:00", "arr": "23:30", "base": 4800}
+        {"flight_no": "100", "dep": "06:15", "base": 4200},
+        {"flight_no": "320", "dep": "11:30", "base": 5100},
+        {"flight_no": "540", "dep": "16:45", "base": 6300},
+        {"flight_no": "980", "dep": "21:00", "base": 4800}
     ]
     
     o_air = airport_by_iata(origin) or {"city": origin, "name": "Terminal Hub"}
     d_air = airport_by_iata(destination) or {"city": destination, "name": "Terminal Hub"}
+    
+    # Calculate exact duration via Earth coordinates distance calculation
+    duration_mins = _haversine_minutes(origin, destination)
     
     generated = []
     for idx, sch in enumerate(schedules):
@@ -148,8 +173,7 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
         final_base = sch["base"] + price_variance
         
         dep_dt = datetime.fromisoformat(f"{target_date_str}T{sch['dep']}:00").replace(tzinfo=timezone.utc)
-        duration = _haversine_minutes(o_air.get("city", origin), d_air.get("city", destination))
-        arr_dt = dep_dt + timedelta(minutes=duration)
+        arr_dt = dep_dt + timedelta(minutes=duration_mins)
         
         total_seats = random.choice([180, 186, 290, 325])
         avail_seats = total_seats - random.randint(15, total_seats // 2)
@@ -167,8 +191,8 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
             "arrival_time": arr_dt.strftime("%H:%M"),
             "departure_iso": dep_dt.isoformat(),
             "arrival_iso": arr_dt.isoformat(),
-            "duration_mins": duration,
-            "duration": _fmt_duration(duration),
+            "duration_mins": duration_mins,
+            "duration": _fmt_duration(duration_mins),
             "stops": 0,
             "layover": None,
             "aircraft": "Airbus A320neo" if total_seats < 200 else "Boeing 787 Dreamliner",
@@ -333,24 +357,33 @@ async def me(user=Depends(get_current_user)):
     return user
 
 
-# ===== Flights =====
+# ===== Flights Search Operations =====
 @api.post("/flights/search")
 async def search_flights(req: FlightSearchReq):
     flights = _generate_flights_for_route(req.origin, req.destination, req.departure_date)
+    
+    # 🌟 FEATURE 2: 8-Hour Real-Time Guard Clamping Matrix
     now = datetime.now(timezone.utc)
+    booking_cutoff = now + timedelta(hours=8)
+    
     enriched = []
     for f in flights:
         dep_dt = datetime.fromisoformat(f["departure_iso"])
-        if dep_dt < now:
+        
+        # Guard filters out past flights AND any departure within the next 8 hours strictly
+        if dep_dt < booking_cutoff:
             continue
+            
         ratio = f["available_seats"] / f["total_seats"]
         mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
         base = f["base_price"] * mult
         price, reasons = _calc_dynamic_price(base, dep_dt, ratio)
+        
         f["price"] = price
         f["price_reasons"] = reasons
         f["cabin_class"] = req.cabin_class
         enriched.append(f)
+
     return {"outbound": enriched, "return": [], "trip_type": req.trip_type, "passengers": req.passengers}
 
 
@@ -398,7 +431,10 @@ async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
 
     dep_dt = datetime.fromisoformat(flight["departure_iso"])
     now = datetime.now(timezone.utc)
-    if dep_dt <= now: raise HTTPException(status_code=400, detail="This flight has already departed.")
+    
+    # 🌟 FEATURE 2 Guard inside transaction pipeline execution block
+    if dep_dt <= (now + timedelta(hours=8)): 
+        raise HTTPException(status_code=400, detail="Booking window locked. Flights must be booked at least 8 hours before departure.")
 
     ratio = flight["available_seats"] / flight["total_seats"]
     mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
@@ -836,7 +872,6 @@ async def admin_career_apps(user=Depends(require_roles("admin"))):
 
 # ===== Pre-departure Upsell Scanner Scheduler Task =====
 async def _scan_and_send_upsells(force_pnr: Optional[str] = None) -> dict:
-    """Find paid bookings departing in ~36h that haven't been upsold yet, and email them."""
     now = datetime.now(timezone.utc)
     win_low = (now + timedelta(hours=30)).isoformat()
     win_high = (now + timedelta(hours=42)).isoformat()
