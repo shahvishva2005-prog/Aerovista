@@ -51,15 +51,15 @@ export default function Login() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 grid place-items-center px-6 py-16">
+      <div className="w-full lg:w-1/2 grid place-items-center px-6 py-16 bg-[#FAF8F2]">
         <form onSubmit={submit} className="w-full max-w-md">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-full av-bg-gold grid place-items-center">
               <Plane className="w-5 h-5 text-[#0B132B]" />
             </div>
             <div>
-              <div className="font-serif-display text-2xl text-white">Sign in</div>
-              <div className="text-white/55 text-xs">to your AeroVista account</div>
+              <div className="font-serif-display text-2xl text-[#0B132B]">Sign in</div>
+              <div className="text-[#0B132B]/65 text-xs">to your AeroVista account</div>
             </div>
           </div>
 
@@ -81,7 +81,7 @@ export default function Login() {
             <PasswordField label="Password" value={pw} onChange={setPw} testId="login-password" autoComplete="current-password" />
           </div>
 
-          {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
+          {err && <div className="text-red-700 text-sm mt-3 bg-red-100 border border-red-300 rounded-lg px-3 py-2" data-testid="login-error">{err}</div>}
 
           <button disabled={busy} data-testid="login-submit"
             className="w-full mt-6 bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold py-3.5 rounded-full transition disabled:opacity-60">

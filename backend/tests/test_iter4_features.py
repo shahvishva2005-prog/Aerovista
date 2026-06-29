@@ -5,13 +5,30 @@ reviews, careers, admin charts, financial records (list/import/export),
 pilot cabin crew roster, phone+email login regression.
 """
 import os
+import re
 import base64
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL").rstrip("/")
+
+def _resolve_base_url() -> str:
+    env = os.environ.get("REACT_APP_BACKEND_URL")
+    if env:
+        return env.rstrip("/")
+    # Fallback: parse frontend/.env (CI / dev)
+    fe = Path("/app/frontend/.env")
+    if fe.exists():
+        for line in fe.read_text().splitlines():
+            m = re.match(r"^REACT_APP_BACKEND_URL=(.+)$", line.strip())
+            if m:
+                return m.group(1).strip('"').strip("'").rstrip("/")
+    return "http://localhost:8001"
+
+
+BASE_URL = _resolve_base_url()
 API = f"{BASE_URL}/api"
 
 ADMIN = {"email": "admin@aerovista.com", "password": "Admin@123"}
@@ -151,7 +168,7 @@ def test_booking_with_medical_and_armed_concession(future_flight, customer_token
 def test_booking_with_corporate_5pct(future_flight, customer_token):
     pax = [{"title": "Mr", "first_name": "Corp", "last_name": "Trav", "gender": "M", "nationality": "Indian"}]
     corp = {"company_name": "ACME PVT LTD", "gstin": "27AAACA1234B1Z5",
-            "po_number": "PO-001", "invoice_email": "billing@acme.test"}
+            "po_number": "PO-001", "invoice_email": "billing@acme.example.com"}
     r = _book(future_flight, customer_token, pax, _billing(CUSTOMER["email"], corporate=corp))
     assert r.status_code == 200, r.text
     fare = r.json()["fare"]
@@ -179,10 +196,10 @@ def test_booking_past_flight_rejected(admin_token, customer_token):
 def test_reviews_submit_and_list():
     payload = {
         "name": "Test Reviewer",
-        "email": "review-test@aerovista.test",
+        "email": "review-test@aerovista.example.com",
         "rating": 5,
         "title": "Iter4 review",
-        "comment": "Automated test review for iteration 4.",
+        "review": "Automated test review for iteration 4.",
     }
     r = _post("/reviews", payload)
     assert r.status_code == 200, r.text
@@ -208,9 +225,11 @@ def test_admin_email_logs_review(admin_token):
 def test_careers_apply_ok():
     payload = {
         "name": "Test Applicant",
-        "email": "applicant@aerovista.test",
-        "phone": "+919000099999",
-        "position": "Cabin Crew",
+        "email": "applicant@aerovista.example.com",
+        "mobile": "+91 9000099999",
+        "role_applied": "Cabin Crew",
+        "experience_years": 3,
+        "current_company": "X Airlines",
         "cover_letter": "I love flying.",
     }
     r = _post("/careers/apply", payload)
@@ -222,9 +241,10 @@ def test_careers_apply_resume_too_large():
     big = base64.b64encode(b"A" * (6 * 1024 * 1024)).decode("ascii")
     payload = {
         "name": "Big Resume",
-        "email": "big@aerovista.test",
-        "phone": "+910000000000",
-        "position": "Pilot",
+        "email": "big@aerovista.example.com",
+        "mobile": "+91 0000000000",
+        "role_applied": "Pilot",
+        "experience_years": 0,
         "cover_letter": "x",
         "resume_base64": big,
         "resume_filename": "big.pdf",
@@ -238,7 +258,7 @@ def test_admin_career_applications(admin_token):
     assert r.status_code == 200
     items = r.json()
     assert isinstance(items, list)
-    assert any(it.get("email") == "applicant@aerovista.test" for it in items)
+    assert any(it.get("email") == "applicant@aerovista.example.com" for it in items)
 
 
 # ------------------ 5. Admin charts ------------------
@@ -279,7 +299,7 @@ def test_admin_charts_seasons(admin_token):
     assert r.status_code == 200, r.text
     data = r.json()
     assert isinstance(data, list) and len(data) == 3, f"expected 3 seasons, got {len(data)}"
-    names = {(d.get("name") or d.get("label") or "").lower() for d in data}
+    names = {(d.get("season") or d.get("name") or d.get("label") or "").lower() for d in data}
     assert any("peak" in n for n in names)
     assert any("mid" in n for n in names)
     assert any("off" in n for n in names)
@@ -304,7 +324,11 @@ def test_admin_financial_records_list_20(admin_token):
     assert r.status_code == 200, r.text
     items = r.json()
     assert isinstance(items, list)
-    assert len(items) == 20, f"expected 20 financial records, got {len(items)}"
+    # >=20 hardcoded seed records (importer test may have upserted extras earlier)
+    assert len(items) >= 20, f"expected at least 20 financial records, got {len(items)}"
+    # Ensure the seeded 'Route P&L' baseline of 18 is present (2 are RefundSummary/OperatingCost)
+    routes = [it for it in items if it.get("kind") == "Route P&L"]
+    assert len(routes) >= 18, f"expected at least 18 Route P&L rows, got {len(routes)}"
 
 
 def test_admin_exports_financials_csv_xlsx(admin_token):

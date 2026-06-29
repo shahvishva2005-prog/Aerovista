@@ -38,13 +38,13 @@ export default function Register() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 grid place-items-center px-6 py-16">
+      <div className="w-full lg:w-1/2 grid place-items-center px-6 py-16 bg-[#FAF8F2]">
         <form onSubmit={submit} className="w-full max-w-md">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-full av-bg-gold grid place-items-center"><Plane className="w-5 h-5 text-[#0B132B]" /></div>
             <div>
-              <div className="font-serif-display text-2xl text-white">Create Account</div>
-              <div className="text-white/55 text-xs">Free SkyChip membership included</div>
+              <div className="font-serif-display text-2xl text-[#0B132B]">Create Account</div>
+              <div className="text-[#0B132B]/65 text-xs">Free SkyChip membership included</div>
             </div>
           </div>
 
@@ -55,15 +55,15 @@ export default function Register() {
             <PasswordField label="Password" value={pw} onChange={setPw} testId="reg-password" autoComplete="new-password" />
           </div>
 
-          {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
+          {err && <div className="text-red-700 text-sm mt-3 bg-red-100 border border-red-300 rounded-lg px-3 py-2" data-testid="register-error">{err}</div>}
 
           <button disabled={busy} data-testid="reg-submit"
             className="w-full mt-6 bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold py-3.5 rounded-full transition disabled:opacity-60">
             {busy ? "Creating…" : "Create Account"}
           </button>
 
-          <div className="text-center text-white/60 text-sm mt-5">
-            Already have an account? <Link to="/login" className="text-amber-400 hover:text-amber-300">Sign in</Link>
+          <div className="text-center text-[#0B132B]/65 text-sm mt-5">
+            Already have an account? <Link to="/login" className="text-amber-700 hover:text-amber-600 font-medium">Sign in</Link>
           </div>
         </form>
       </div>
