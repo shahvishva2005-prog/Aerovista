@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 
-// Coordinate directory for immediate client-side great-circle computations
 const AIRPORT_COORDINATES = {
   DEL: { lat: 28.5562, lon: 77.1000 },
   BOM: { lat: 19.0896, lon: 72.8656 },
@@ -26,10 +25,7 @@ export default function FlightSearchWidget({ onSearch }) {
   const calculateLiveDuration = (fromCode, toCode) => {
     const p1 = AIRPORT_COORDINATES[fromCode.toUpperCase().trim()];
     const p2 = AIRPORT_COORDINATES[toCode.toUpperCase().trim()];
-    if (!p1 || !p2) {
-      setLiveDuration("");
-      return;
-    }
+    if (!p1 || !p2) { setLiveDuration(""); return; }
     const R = 6371;
     const dLat = ((p2.lat - p1.lat) * Math.PI) / 180;
     const dLon = ((p2.lon - p1.lon) * Math.PI) / 180;
@@ -38,7 +34,6 @@ export default function FlightSearchWidget({ onSearch }) {
               Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
-    
     const totalMins = Math.round((distance / 800) * 60) + 20;
     setLiveDuration(`${Math.floor(totalMins / 60)}h ${totalMins % 60}m`);
   };
@@ -55,20 +50,18 @@ export default function FlightSearchWidget({ onSearch }) {
     e.preventDefault();
     if (onSearch) {
       onSearch({
-        tripType,
         origin: form.origin.trim().toUpperCase(),
         destination: form.destination.trim().toUpperCase(),
         date: form.date,
-        returnDate: tripType === "round-trip" ? form.returnDate : null,
-        estimatedDuration: liveDuration || null
+        returnDate: tripType === "round-trip" ? form.returnDate : null
       });
     }
   };
 
   return (
     <div className="space-y-4">
-      {/* 🔄 Navigation Option Tabs matching screenshot styles */}
-      <div className="flex gap-3 pl-1">
+      {/* 🔄 Navigation Option Tabs matching your layout design */}
+      <div className="flex gap-2">
         {["one-way", "round-trip", "multi-city"].map((type) => (
           <button
             key={type}
@@ -83,7 +76,6 @@ export default function FlightSearchWidget({ onSearch }) {
         ))}
       </div>
 
-      {/* Main Base Widget Card Container */}
       <form onSubmit={handleSubmit} className="bg-[#111c44] border border-slate-800 p-6 rounded-xl shadow-lg space-y-4">
         <div className={`grid grid-cols-1 gap-4 items-end ${tripType === "round-trip" ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
           <div>
@@ -140,17 +132,15 @@ export default function FlightSearchWidget({ onSearch }) {
 
           <button
             type="submit"
-            className={`w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black text-sm p-3 rounded-lg shadow-md tracking-wide transition-all ${tripType === "round-trip" ? "" : "md:col-span-1"}`}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black text-sm p-3 rounded-lg shadow-md tracking-wide transition-all"
           >
             SEARCH ROUTING
           </button>
         </div>
 
-        {/* Real-time calculated duration box inside the panel */}
         {liveDuration && (
-          <div className="bg-[#0b0f19]/80 border border-slate-800 px-4 py-2 rounded-lg text-xs text-slate-400 flex justify-between items-center">
-            <span>Route Mapped: <strong>{form.origin.toUpperCase()} ➔ {form.destination.toUpperCase()}</strong></span>
-            <span>Calculated Duration: <strong className="text-yellow-500">{liveDuration}</strong></span>
+          <div className="text-right text-xs font-semibold text-slate-500 tracking-wide pt-1">
+            ⏱️ Estimated Flight Duration: <span className="text-yellow-500 font-bold">{liveDuration}</span>
           </div>
         )}
       </form>
