@@ -1,18 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  margin: 0;
-  font-family: 'Inter', -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  background-color: #F8FAFC; /* Clean Slate Light app background layout */
-  color: #0F172A; /* Slate Midnight Dark primary typography text */
+    margin: 0;
+    font-family: 'Outfit', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0B132B;
+    color: #ffffff;
 }
 
-/* Custom layout element wrapper utilities override */
-.admin-card {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+code { font-family: 'JetBrains Mono', monospace; }
+
+@layer base {
+    :root {
+        --background: 215 56% 11%;
+        --foreground: 0 0% 100%;
+        --card: 219 38% 19%;
+        --card-foreground: 0 0% 100%;
+        --popover: 219 38% 19%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 45 65% 53%;
+        --primary-foreground: 215 56% 11%;
+        --secondary: 219 38% 19%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 219 30% 22%;
+        --muted-foreground: 215 16% 65%;
+        --accent: 45 65% 53%;
+        --accent-foreground: 215 56% 11%;
+        --destructive: 0 72% 50%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 215 25% 22%;
+        --input: 215 25% 22%;
+        --ring: 45 65% 53%;
+        --radius: 0.5rem;
+    }
 }
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+    .font-serif-display { font-family: 'Cormorant Garamond', serif; }
+    .font-mono-aero { font-family: 'JetBrains Mono', monospace; }
+}
+
+/* Reusable utilities */
+.av-gold { color: #D4AF37; }
+.av-bg-gold { background-color: #D4AF37; }
+.av-border-gold { border-color: #D4AF37; }
+
+.glass {
+    background: rgba(11, 19, 43, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-light {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-overlay {
+    background: linear-gradient(180deg,
+        rgba(11, 19, 43, 0.55) 0%,
+        rgba(11, 19, 43, 0.45) 40%,
+        rgba(11, 19, 43, 0.85) 100%);
+}
+.av-divider-gold { height: 1px; background: linear-gradient(90deg, transparent, #D4AF37, transparent); }
+
+
+.av-section-pad { @apply py-20 md:py-28 px-6 md:px-12 lg:px-20; }
+
+/* Smooth fade-in */
+.av-fade-in { animation: avFade 700ms ease-out both; }
+@keyframes avFade {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Text gradient gold */
+.av-text-gold-grad {
+    background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #B8941F 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0B132B; }
+::-webkit-scrollbar-thumb { background: #1C2541; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #2a3760; }
+
+/* Seat map */
+.seat {
+    @apply w-9 h-9 rounded-md flex items-center justify-center text-[10px] font-medium transition-all;
+}
+.seat-available { @apply bg-white/10 text-white/80 border border-white/15 hover:bg-amber-400/30 cursor-pointer; }
+.seat-selected { @apply bg-amber-400 text-slate-900 border border-amber-300; }
+.seat-occupied { @apply bg-white/5 text-white/20 cursor-not-allowed border border-white/5; }
+.seat-premium { @apply ring-1 ring-amber-400/40; }
