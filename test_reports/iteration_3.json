@@ -1,0 +1,39 @@
+{
+  "summary": "Focused auth regression after phone-login support. Backend: 21/21 pytest cases PASS — email login for admin/pilot/crew/customer, mobile login both '+91 9000000001' exact format and digits-only '9000000001' suffix match, wrong-password 401 (no email/mobile info leak), short mobile 400, non-existent identifier 401, empty identifier 400/422, /api/auth/me valid for tokens issued by BOTH flows, mobile with leading/trailing spaces tolerated. Frontend: 6/6 Playwright flows PASS — Email|Mobile toggle visible, demo-* buttons click-to-fill + switch to email mode, admin email login -> /admin, pilot mobile (+91 …002) -> /pilot, crew digits-only (…003) -> /crew, customer demo -> /account, JWT persisted in localStorage under av_token/av_user (token len ~185), wrong-password keeps user on /login with error, short mobile shows 'Invalid mobile number' error. No regression in email-based JWT login. Previously reported 'invalid credentials' bug is RESOLVED for all 4 seeded roles.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/admin (post-login)", "issues": ["Recharts console warnings: 'The width(-1) and height(-1) of chart should be greater than 0' — out of scope for this iteration but worth fixing by giving the chart container an explicit min-height. Does not affect auth flow."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_phone_login.py",
+    "/app/test_reports/pytest/auth_phone_results.xml"
+  ],
+  "action_items": [
+    "No blocking action items for auth. Phone + email login both confirmed end-to-end.",
+    "(Carry-over, optional) Fix Recharts width=-1 warning on /admin by setting min-height on chart container.",
+    "(Carry-over from iter 1) Consider splitting /app/backend/server.py (1196 lines) into routers (auth, admin, bookings, flights)."
+  ],
+  "critical_code_review_comments": [
+    "auth/login (server.py:390-414) correctly accepts either email or mobile via LoginReq. Mobile is normalized by stripping non-digits, requires >=7 digits else 400, then tries exact match first and falls back to suffix regex on the last 10 digits — handles '+91 9000000001' and '9000000001' uniformly. Generic 'Invalid credentials' 401 prevents user enumeration across both branches.",
+    "Login.jsx posts {email|mobile, password} based on loginMode state, stores access_token + user JSON in localStorage and hard-reloads to role-specific route. Demo buttons correctly force loginMode back to 'email' so users don't get stuck in mobile mode after a demo click.",
+    "Suffix regex {$regex: tail$} works but is not anchored at start — if two users shared the same last 10 digits this would be ambiguous. Currently safe because all seeded mobiles are unique. Recommend storing a normalized 'mobile_digits' field on user docs and querying on equality instead of regex for future scale.",
+    "/api/auth/me strips _id and password_hash via get_current_user — verified no PII leak in response body."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_phone_login.py (created — 21 parameterised tests, ~5s runtime)"
+  ],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "100% (6/6)"},
+  "test_credentials": "admin@aerovista.com/Admin@123 (+91 9000000001), pilot@aerovista.com/Pilot@123 (+91 9000000002), crew@aerovista.com/Crew@123 (+91 9000000003), customer@aerovista.com/Customer@123 (+91 9000000004). All passwords verified intact — /app/memory/test_credentials.md is accurate.",
+  "seed_data_creation": "None. Tests only read-validate existing seeded accounts; no DB writes.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth (email + mobile login) is fully green as of iteration_3. Reusable regression test: /app/backend/tests/test_auth_phone_login.py — keep running it on any future auth changes. Iteration 1 + 2 carry-overs (Recharts warning, /api/airports response size, ProtectedRoute race, PNR O/0 font ambiguity) were NOT retested in this focused pass. Next iteration can re-run /app/backend/tests/test_aerovista.py and /app/backend/tests/test_password_reset_and_seed.py alongside this file for full backend coverage.",
+  "rca_of_the_issue": "Previous user-reported 'invalid credentials' with correct creds was caused by force-seed wiping all users (fixed in iter 2). Phone-login was the new feature added in this iteration. Implementation in server.py:390-414 detects identifier by presence of '@', else strips to digits and does exact-then-suffix mobile lookup. All 4 seeded roles authenticate via both channels and receive a valid JWT whose payload (sub, role) drives /api/auth/me + frontend role-based redirect. No regression detected."
+}
