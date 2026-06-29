@@ -1,120 +1,164 @@
-import React, { useState } from "react";
-import FlightSearchWidget from "../components/FlightSearchWidget";
+import React, { useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { api, fmtINR } from "../lib/api";
-import { Plane, Clock, Calendar } from "lucide-react";
+import FlightSearchWidget from "../components/FlightSearchWidget";
+import { Plane, Clock, ArrowRight, Info } from "lucide-react";
 
 export default function FlightSearchPage() {
+  const [params] = useSearchParams();
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [routeLabel, setRouteLabel] = useState("");
+  const [error, setError] = useState("");
+  const [filterStops, setFilterStops] = useState("any");
+  const [sortBy, setSortBy] = useState("price");
 
-  const handleSearchExecution = async (criteria) => {
-    setLoading(true);
-    setSearched(true);
-    setRouteLabel(`${criteria.origin} ➔ ${criteria.destination}`);
-    try {
-      const res = await api.get("/flights/search", { params: criteria });
-      setFlights(res.data);
-    } catch (err) {
-      console.error(err);
-      setFlights([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const cabinClass = params.get("cabin_class") || "economy";
+  const passengers = Number(params.get("passengers") || 1);
+
+  useEffect(() => {
+    const origin = params.get("origin");
+    const destination = params.get("destination");
+    const dep = params.get("departure_date");
+    if (!origin || !destination || !dep) return;
+    setLoading(true); setError("");
+    api.post("/flights/search", {
+      origin, destination, departure_date: dep,
+      trip_type: params.get("trip_type") || "one_way",
+      passengers, cabin_class: cabinClass,
+    }).then((r) => setFlights(r.data.outbound || []))
+      .catch((e) => setError(e?.response?.data?.detail || "Search failed"))
+      .finally(() => setLoading(false));
+  }, [params]); // eslint-disable-line
+
+  const sorted = [...flights].sort((a, b) => {
+    if (sortBy === "price") return a.price - b.price;
+    if (sortBy === "duration") return a.duration_mins - b.duration_mins;
+    if (sortBy === "departure") return a.departure_time.localeCompare(b.departure_time);
+    return 0;
+  });
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-white py-10 px-4 flex flex-col justify-between">
-      <div className="max-w-7xl mx-auto w-full space-y-8 flex-grow">
-        
-        {/* Render Form Widget */}
-        <FlightSearchWidget onSearch={handleSearchExecution} />
+    <div className="min-h-screen pt-24 pb-16" data-testid="search-page">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+        <div className="mb-8">
+          <FlightSearchWidget variant="compact" />
+        </div>
 
-        {/* Split Filtering/Results Column */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-2">
-          
-          {/* Left Filter Sidebar */}
-          <div className="bg-[#111c44] border border-slate-800 p-5 rounded-2xl space-y-6 shadow-xl">
-            <h3 className="text-xs font-black text-yellow-500 tracking-widest uppercase border-b border-slate-800 pb-2">FILTERS</h3>
-            <div className="space-y-2.5">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Sort By</label>
-              {["Price (Low to High)", "Duration", "Departure Time"].map((f, i) => (
-                <label key={f} className="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer font-medium hover:text-white transition-all">
-                  <input type="radio" name="sort" defaultChecked={i===0} className="text-yellow-500 focus:ring-0 bg-[#0b0f19] border-slate-700" /> {f}
+        <div className="grid lg:grid-cols-4 gap-6">
+          <aside className="lg:col-span-1 glass-light rounded-2xl p-6 h-fit sticky top-28" data-testid="filters">
+            <div className="text-amber-400 text-xs tracking-[0.3em] uppercase mb-4">Filters</div>
+            <div className="mb-6">
+              <div className="text-white/70 text-sm mb-2">Sort By</div>
+              {[
+                ["price", "Price (Low to High)"],
+                ["duration", "Duration"],
+                ["departure", "Departure Time"],
+              ].map(([v, l]) => (
+                <label key={v} className="flex items-center gap-2 text-white/85 text-sm py-1.5 cursor-pointer">
+                  <input type="radio" value={v} checked={sortBy === v} onChange={() => setSortBy(v)} data-testid={`sort-${v}`} />
+                  {l}
                 </label>
               ))}
             </div>
-            <div className="space-y-2.5 border-t border-slate-800/80 pt-4">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Stops</label>
-              {["Any", "Non-stop", "1 Stop"].map((f, i) => (
-                <label key={f} className="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer font-medium hover:text-white transition-all">
-                  <input type="radio" name="stops" defaultChecked={i===0} className="text-yellow-500 focus:ring-0 bg-[#0b0f19] border-slate-700" /> {f}
+            <div>
+              <div className="text-white/70 text-sm mb-2">Stops</div>
+              {["any", "nonstop", "1stop"].map((v) => (
+                <label key={v} className="flex items-center gap-2 text-white/85 text-sm py-1.5 cursor-pointer">
+                  <input type="radio" value={v} checked={filterStops === v} onChange={() => setFilterStops(v)} />
+                  {v === "any" ? "Any" : v === "nonstop" ? "Non-stop" : "1 Stop"}
                 </label>
               ))}
             </div>
-          </div>
+          </aside>
 
-          {/* Right Results Grid Panel Column */}
-          <div className="md:col-span-3 space-y-4 min-h-[450px]">
-            {loading && (
-              <div className="text-center py-20 bg-[#111c44]/30 border border-slate-800 rounded-2xl">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-                <p className="text-slate-400 text-sm font-semibold">Scanning real-time carrier flight schedules...</p>
+          <section className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-serif-display text-3xl text-white">
+                  {params.get("origin")} → {params.get("destination")}
+                </h2>
+                <p className="text-white/55 text-sm mt-1">{params.get("departure_date")} • {passengers} passenger(s) • {cabinClass.replace("_", " ")}</p>
+              </div>
+              <div className="text-amber-400 text-sm">{flights.length} flights</div>
+            </div>
+
+            {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
+            {loading && <div className="text-white/70 py-12 text-center">Searching luxurious skyways…</div>}
+            {!loading && sorted.length === 0 && !error && (
+              <div className="glass-light rounded-2xl p-12 text-center">
+                <Plane className="w-10 h-10 text-amber-400 mx-auto mb-3" />
+                <div className="text-white">No flights found for this route on selected date.</div>
+                <div className="text-white/50 text-sm mt-2">Try different dates or destinations.</div>
               </div>
             )}
 
-            {!loading && !searched && (
-              <div className="bg-[#111c44]/20 border border-dashed border-slate-800/80 rounded-2xl p-12 text-center py-24 flex flex-col justify-center items-center">
-                <p className="font-bold text-slate-400 text-base mb-1">Ready for Search</p>
-                <p className="text-xs text-slate-500 max-w-sm">Specify your departure codes and calendar dates to initialize live flight tracking.</p>
-              </div>
-            )}
-
-            {!loading && flights.length > 0 && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <h2 className="text-2xl font-black tracking-tight text-slate-200">{routeLabel}</h2>
-                  <span className="text-xs font-bold text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 rounded-md">{flights.length} flights tracked</span>
-                </div>
-
-                {flights.map((flight) => (
-                  <div key={flight.id} className="bg-[#111c44] border border-slate-800/70 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 transition-all hover:border-yellow-500/20 shadow-lg">
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                      <div className="bg-yellow-500/10 p-3.5 rounded-xl text-yellow-500 hidden sm:block"><Plane className="w-5 h-5 -rotate-45" /></div>
-                      <div className="w-full">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-yellow-500 tracking-wide">{flight.flight_number}</span>
-                          <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded uppercase font-bold tracking-wider">{flight.aircraft}</span>
-                        </div>
-                        <h4 className="text-xl font-black text-white mt-1">{flight.origin} ➔ {flight.destination}</h4>
-                        <div className="flex gap-5 text-xs text-slate-400 mt-2 font-medium">
-                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-500" /> {flight.departure_time} - {flight.arrival_time}</span>
-                          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-slate-500" /> Term {flight.terminal || "3"} • Gate {flight.gate || "A1"}</span>
-                        </div>
+            <div className="space-y-3">
+              {sorted.map((f) => (
+                <div key={f.id} className="glass-light rounded-2xl p-5 md:p-6 hover:border-amber-400/40 border border-white/10 transition" data-testid={`flight-${f.flight_number}`}>
+                  <div className="grid md:grid-cols-12 gap-4 items-center">
+                    <div className="md:col-span-2 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full av-bg-gold grid place-items-center">
+                        <Plane className="w-4 h-4 text-[#0B132B]" />
+                      </div>
+                      <div>
+                        <div className="text-white font-semibold text-sm">AeroVista</div>
+                        <div className="font-mono-aero text-amber-400 text-xs">{f.flight_number}</div>
                       </div>
                     </div>
-                    <div className="text-center md:text-right border-t md:border-t-0 pt-4 md:pt-0 border-slate-800/80 flex md:flex-col justify-between md:justify-center items-center md:items-end gap-2 w-full md:w-auto">
+
+                    <div className="md:col-span-5 grid grid-cols-3 items-center">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-400 block tracking-widest uppercase">Per Passenger</span>
-                        <span className="text-2xl font-black text-white tracking-tight">{fmtINR(flight.base_price)}</span>
+                        <div className="font-serif-display text-2xl text-white">{f.departure_time}</div>
+                        <div className="text-white/55 text-xs">{f.origin}</div>
                       </div>
-                      <button className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black text-xs px-5 py-3 rounded-xl tracking-wider uppercase transition-all shadow-md">Select ➔</button>
+                      <div className="text-center px-2">
+                        <div className="text-amber-400 text-xs flex items-center justify-center gap-2">
+                          <Clock className="w-3 h-3" /> {f.duration}
+                        </div>
+                        <div className="border-t border-dashed border-white/20 my-1.5 relative">
+                          <Plane className="absolute left-1/2 -translate-x-1/2 -top-2 w-3 h-3 text-amber-400" />
+                        </div>
+                        <div className="text-white/40 text-[10px] uppercase">Non-stop</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-serif-display text-2xl text-white">{f.arrival_time}</div>
+                        <div className="text-white/55 text-xs">{f.destination}</div>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 text-white/50 text-xs">
+                      <div>{f.aircraft}</div>
+                      <div className="mt-1">T {f.terminal} • G {f.gate}</div>
+                    </div>
+
+                    <div className="md:col-span-3 flex flex-col items-end gap-2">
+                      <div className="text-right">
+                        <div className="font-serif-display text-3xl av-text-gold-grad">{fmtINR(f.price)}</div>
+                        <div className="text-white/45 text-[11px]">per passenger</div>
+                      </div>
+                      <Link to={`/seats/${f.id}?passengers=${passengers}&cabin=${cabinClass}`}
+                        data-testid={`select-${f.flight_number}`}
+                        className="bg-amber-400 hover:bg-amber-300 text-[#0B132B] font-semibold px-5 py-2.5 rounded-full text-sm inline-flex items-center gap-2 transition">
+                        Select <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
 
-            {!loading && searched && flights.length === 0 && (
-              <div className="bg-[#111c44] border border-slate-800 rounded-2xl p-16 text-center text-slate-400 shadow-xl flex flex-col justify-center items-center">
-                <div className="text-yellow-500/80 mb-4"><Plane className="w-10 h-10" /></div>
-                <p className="font-bold text-white text-lg mb-1">No flights found for this route on selected date.</p>
-                <p className="text-xs text-slate-500 max-w-sm">Try alternate dates, cross-check code inputs, or clear filter tags.</p>
-              </div>
-            )}
-          </div>
-
+                  {f.price_reasons?.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-white/5 flex gap-2 flex-wrap text-xs">
+                      <Info className="w-3.5 h-3.5 text-amber-400" />
+                      {f.price_reasons.map((r, i) => (
+                        <span key={i} className="text-white/55">
+                          {r.label} <span className="text-amber-400">{r.factor}</span>
+                          {i < f.price_reasons.length - 1 && " •"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </div>
