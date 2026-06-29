@@ -5,8 +5,20 @@ import { Plane, Award, Globe, ShieldCheck, Sparkles, Star, ArrowRight, MapPin } 
 import FlightSearchWidget from "../components/FlightSearchWidget";
 import WorldMap from "../components/WorldMap";
 import { api } from "../lib/api";
+import PassengerDropdown from "../components/PassengerDropdown";
+
+
 
 const HERO_IMG = "https://images.unsplash.com/photo-1583416750470-965b2707b355?w=1920&q=85";
+// Inside your Search Form State initialization context container:
+// const [passengers, setPassengers] = useState([{ first_name: "", last_name: "", type: "adult" }]);
+
+<div className="w-full md:w-1/4">
+  <PassengerDropdown 
+    value={passengers} 
+    onChange={(updatedArray) => setPassengers(updatedArray)} 
+  />
+</div>
 
 const DESTINATIONS = [
   { code: "DXB", city: "Dubai", country: "United Arab Emirates", img: "https://images.pexels.com/photos/18341554/pexels-photo-18341554.jpeg?auto=compress&cs=tinysrgb&w=940", span: "md:col-span-5 md:row-span-2" },
