@@ -1,4 +1,4 @@
-"""AeroVista Airlines - FastAPI Master Backend Engine.
+"""AeroVista Airlines - FastAPI Unified Core Backend Engine.
 All routes are mounted dynamically under both /api and root paths to handle mixed frontend targets.
 """
 import os
@@ -36,19 +36,18 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-# 🌟 MAIN APPLICATION CAPSTONE
+# 🌟 APPLICATION CORNERSTONE SERVICE MATRIX
 app = FastAPI(title="AeroVista Airlines API")
 
-# 🔒 SECURITY HANDSHAKE MIDDLEWARE (Configured to avoid credential vs wildcard conflicts)
+# 🔒 SECURITY ENGINE: Fixed wildcard conflict to pass browser security checks cleanly
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
-    allow_credentials=False,  
+    allow_credentials=False,  # Bypasses browser preflight tracking blocks (Bearer authentication verified)
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 🛠️ BASE LINE ROUTER
 api = APIRouter()
 
 # Background scheduler — runs pre-departure upsell scan hourly
@@ -165,6 +164,7 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
 # ===== Seed Endpoint =====
 @api.get("/admin/seed")
 async def admin_seed(force: bool = False):
+    """Seed system configurations, baseline users, and analytical metrics logs logs."""
     existing = await db.users.count_documents({})
     if existing > 0 and not force:
         return {"message": "Already seeded", "users": existing}
@@ -199,6 +199,7 @@ async def admin_seed(force: bool = False):
     }
     await db.users.insert_many([admin, pilot_user, crew_user, customer])
 
+    # ===== Financial Logs Baseline (20 records) =====
     fin_records = [
         ("2025-09", "Route P&L", "DEL-BOM", 1850000, 42000, 18.5, "Off"),
         ("2025-09", "Route P&L", "DEL-BLR", 1620000, 31000, 16.2, "Off"),
@@ -227,6 +228,7 @@ async def admin_seed(force: bool = False):
     } for m, k, r, rev, refs, pm, s in fin_records]
     await db.financial_records.insert_many(fin_docs)
 
+    # Traffic Events Baseline
     today = now.date()
     traffic_docs = []
     for d in range(0, 30):
@@ -243,7 +245,7 @@ async def admin_seed(force: bool = False):
     return {"message": "Seeded", "users": 4, "financial_records": len(fin_docs), "traffic_events": len(traffic_docs)}
 
 
-# ===== Public =====
+# ===== Public Operations Endpoints =====
 @api.get("/")
 async def root():
     return {"app": "AeroVista Airlines API", "status": "ok", "airports_count": len(AIRPORTS)}
@@ -265,7 +267,7 @@ async def public_stats():
     }
 
 
-# ===== Auth =====
+# ===== Auth Routes =====
 @api.post("/auth/register", response_model=TokenRes)
 async def register(req: RegisterReq):
     existing = await db.users.find_one({"email": req.email.lower()})
@@ -310,24 +312,28 @@ async def me(user=Depends(get_current_user)):
     return user
 
 
-# ===== Flights =====
+# ===== Flights Dynamic Engine Routes =====
 @api.post("/flights/search")
 async def search_flights(req: FlightSearchReq):
     flights = _generate_flights_for_route(req.origin, req.destination, req.departure_date)
+    
     now = datetime.now(timezone.utc)
     enriched = []
     for f in flights:
         dep_dt = datetime.fromisoformat(f["departure_iso"])
         if dep_dt < now:
             continue
+            
         ratio = f["available_seats"] / f["total_seats"]
         mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
         base = f["base_price"] * mult
         price, reasons = _calc_dynamic_price(base, dep_dt, ratio)
+        
         f["price"] = price
         f["price_reasons"] = reasons
         f["cabin_class"] = req.cabin_class
         enriched.append(f)
+
     return {"outbound": enriched, "return": [], "trip_type": req.trip_type, "passengers": req.passengers}
 
 
@@ -348,6 +354,7 @@ async def flight_detail(flight_id: str):
     rows, cols = 30, ["A", "B", "C", "D", "E", "F"]
     random.seed(sum(ord(c) for c in flight_id))
     occupied = set(random.sample([f"{r}{c}" for r in range(1, rows + 1) for c in cols], k=80))
+    
     seat_map = []
     for r in range(1, rows + 1):
         for c in cols:
@@ -355,12 +362,14 @@ async def flight_detail(flight_id: str):
             seat_type = "first" if r <= 2 else "business" if r <= 5 else "premium_economy" if r <= 8 else "economy"
             state = "occupied" if seat in occupied else "available"
             extra_price = {"first": 9500, "business": 4500, "premium_economy": 800, "economy": 200 if c in ("A", "F") else 0}[seat_type]
+            
             seat_map.append({"seat": seat, "row": r, "col": c, "type": seat_type, "state": state, "extra_price": extra_price})
+            
     f["seat_map"] = seat_map
     return f
 
 
-# ===== Bookings =====
+# ===== Booking Operations =====
 @api.post("/bookings")
 async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
     parts = req.flight_id.split("-")
@@ -375,7 +384,8 @@ async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
 
     dep_dt = datetime.fromisoformat(flight["departure_iso"])
     now = datetime.now(timezone.utc)
-    if dep_dt <= now: raise HTTPException(status_code=400, detail="This flight has already departed.")
+    if dep_dt <= now:
+        raise HTTPException(status_code=400, detail="This flight has already departed.")
 
     ratio = flight["available_seats"] / flight["total_seats"]
     mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
@@ -751,12 +761,6 @@ async def admin_send_test_email(to: str = Body(..., embed=True), user=Depends(re
     return log
 
 
-# ===== Pre-departure Upsell Scanner Manual Call =====
-@api.post("/admin/upsells/scan")
-async def admin_scan_upsells(user=Depends(require_roles("admin"))):
-    return await _scan_and_send_upsells()
-
-
 # ===== Document Spreadsheet Exporters =====
 @api.get("/admin/exports/{kind}.{fmt}")
 async def admin_export(kind: str, fmt: str, user=Depends(require_roles("admin"))):
@@ -817,19 +821,52 @@ async def admin_career_apps(user=Depends(require_roles("admin"))):
     return await db.career_applications.find({}, PROJECT_NO_ID).sort("created_at", -1).limit(500).to_list(500)
 
 
-# ===== Router Assembly and Mount Pipeline =====
-# Mount 1: Root endpoint catch-all map
-app.include_router(api)
+# ===== Pre-departure Upsell Scanner Scheduler Task =====
+async def _scan_and_send_upsells(force_pnr: Optional[str] = None) -> dict:
+    """Find paid bookings departing in ~36h that haven't been upsold yet, and email them."""
+    now = datetime.now(timezone.utc)
+    win_low = (now + timedelta(hours=30)).isoformat()
+    win_high = (now + timedelta(hours=42)).isoformat()
 
-# Mount 2: Explicit prefix tracking fallback node wrapper
-api_prefix_router = APIRouter(prefix="/api")
-api_prefix_router.include_router(api)
-app.include_router(api_prefix_router)
+    query = {"payment_status": "paid", "upsell_sent": {"$ne": True}}
+    if force_pnr:
+        query["pnr"] = force_pnr.upper()
+    else:
+        query["flight_snapshot.departure_iso"] = {"$gte": win_low, "$lte": win_high}
+
+    bookings = await db.bookings.find(query, PROJECT_NO_ID).limit(200).to_list(200)
+    sent = 0
+    for b in bookings:
+        try:
+            f = b.get("flight_snapshot", {})
+            subj, body = email_mod.tpl_pre_departure_upsell(
+                b.get("user_email", "Traveller"), b["pnr"], 
+                f"{f.get('origin')} → {f.get('destination')}", 
+                f.get("departure_date"), f.get("departure_time"), 
+                f"{os.environ.get('FRONTEND_BASE_URL', '')}/account"
+            )
+            await email_mod.send_email(db, b["user_email"], subj, body, category="pre_departure_upsell")
+            await db.bookings.update_one({"id": b["id"]}, {"$set": {"upsell_sent": True, "upsell_sent_at": now.isoformat()}})
+            sent += 1
+        except Exception as e: 
+            logger.error(f"Scanner exception: {e}")
+    return {"scanned": len(bookings), "sent": sent, "force_pnr": force_pnr}
+
+
+@api.post("/admin/upsells/scan")
+async def admin_scan_upsells(user=Depends(require_roles("admin"))):
+    return await _scan_and_send_upsells()
+
+
+# ===== Router Assembly and Dual-Prefix Mounting Matrix =====
+app.include_router(api, prefix="/api")
+app.include_router(api)
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    if scheduler.running: scheduler.shutdown(wait=False)
+    if scheduler.running: 
+        scheduler.shutdown(wait=False)
     client.close()
 
 @app.on_event("startup")
@@ -837,4 +874,4 @@ async def startup_event():
     if not scheduler.running:
         scheduler.add_job(_scan_and_send_upsells, "interval", hours=1, id="upsell_scan", coalesce=True, max_instances=1, replace_existing=True)
         scheduler.start()
-        logger.info("AeroVista Engine Active with complete data schemas.")
+        logger.info("AeroVista Engine Active with dual-prefix route compilation.")
