@@ -1,80 +1,230 @@
-import React, { useState } from 'react';
-import FlightSearchWidget from './FlightSearchWidget';
+@@ -1,113 +1,79 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import AirportSelect from "./AirportSelect";
+import { ArrowLeftRight, Calendar, Users, Search } from "lucide-react";
 
-export default function FlightSearchPage() {
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState([]);
-  const [metaInfo, setMetaInfo] = useState(null);
+export default function FlightSearchWidget({ variant = "hero" }) {
+  const nav = useNavigate();
+  const today = new Date().toISOString().split("T")[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+  const [tripType, setTripType] = useState("one_way");
+  const [origin, setOrigin] = useState("DEL");
+  const [destination, setDestination] = useState("BOM");
+  const [departureDate, setDepartureDate] = useState(tomorrow);
+  const [returnDate, setReturnDate] = useState("");
+  const [passengers, setPassengers] = useState(1);
+  const [cabinClass, setCabinClass] = useState("economy");
 
-  const performSearchExecution = async (searchCriteria) => {
-    setLoading(true);
-    setResults([]);
-    setMetaInfo(searchCriteria);
+  const swap = () => { setOrigin(destination); setDestination(origin); };
 
-    try {
-      // Fires target criteria structure direct up to render backend routing matrix
-      const response = await fetch("https://aerovista.onrender.com/api/flights/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(searchCriteria)
-      });
-      const data = await response.json();
-      setResults(data.flights || []);
-    } catch (err) {
-      console.error("API Fetch operational exception trace:", err);
-    } finally {
-      setLoading(false);
-    }
+
+
+
+  const search = () => {
+    const q = new URLSearchParams({
+      origin, destination, departure_date: departureDate,
+      return_date: returnDate || "", trip_type: tripType,
+      passengers: String(passengers), cabin_class: cabinClass,
+    });
+    nav(`/search?${q.toString()}`);
+
+
+
+
+
+
+
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 text-slate-900">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">AeroVista Outbound Search Hub</h1>
-          <p className="text-slate-500 text-xs">Real-time schedule indexing over cloud API paths</p>
+    <div className={`glass rounded-2xl p-6 md:p-8 ${variant === "hero" ? "shadow-2xl" : ""}`}>
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { v: "one_way", label: "One Way" },
+          { v: "round_trip", label: "Round Trip" },
+          { v: "multi_city", label: "Multi City" },
+        ].map((o) => (
+          <button key={o.v} data-testid={`trip-${o.v}`}
+            onClick={() => setTripType(o.v)}
+            className={`px-5 py-2 rounded-full text-sm font-medium transition ${
+              tripType === o.v ? "bg-amber-400 text-[#0B132B]" : "bg-white/5 text-white/80 hover:bg-white/10"}`}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+        <div className="md:col-span-3">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">From</label>
+          <AirportSelect testId="from-airport" value={origin} onChange={setOrigin} placeholder="Origin" />
         </div>
 
-        {/* Embedded input search handler engine */}
-        <FlightSearchWidget onSearchInitiated={performSearchExecution} />
+        <div className="md:col-span-1 flex justify-center pb-3">
+          <button onClick={swap} data-testid="swap-airports"
+            className="w-10 h-10 rounded-full glass-light hover:av-bg-gold hover:text-[#0B132B] transition grid place-items-center">
+            <ArrowLeftRight className="w-4 h-4" />
+          </button>
+        </div>
 
-        {/* Live Interface Display Logic */}
-        <div className="mt-8">
-          {loading && (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-3"></div>
-              <p className="text-sm font-medium text-slate-500">Querying live airline flight manifests...</p>
-            </div>
-          )}
+        <div className="md:col-span-3">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">To</label>
+          <AirportSelect testId="to-airport" value={destination} onChange={setDestination} placeholder="Destination" />
+        </div>
 
-          {!loading && results.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-slate-400 tracking-wider">AVAILABLE SCHEDULE MANIFESTS ({results.length})</h3>
-              {results.map((flight) => (
-                <div key={flight.id || flight.flight_number} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 transition-all hover:border-slate-300">
-                  <div>
-                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">{flight.flight_number}</span>
-                    <h4 className="text-lg font-bold text-slate-900 mt-2">{flight.origin} → {flight.destination}</h4>
-                    <p className="text-xs text-slate-400 font-medium">{flight.aircraft} • Gate {flight.gate || 'TBD'}</p>
-                  </div>
-                  <div className="text-center md:text-right">
-                    <span className="text-xs font-bold text-slate-400 block mb-1">ESTIMATED FARE</span>
-                    <span className="text-xl font-black text-slate-900">₹{flight.base_price}</span>
-                    <button className="block mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 px-4 rounded transition-all">Select Fare</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="md:col-span-2">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Departure</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <input type="date" data-testid="departure-date" min={today}
+              value={departureDate} onChange={(e) => setDepartureDate(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-3.5 text-white text-sm" />
+          </div>
+        </div>
 
-          {!loading && metaInfo && results.length === 0 && (
-            <div className="bg-white border border-slate-200 rounded-xl text-center py-12 p-6 shadow-sm">
-              <p className="text-sm text-slate-500 font-semibold">No operational flights mapped for the selected routes or dates.</p>
-              <p className="text-xs text-slate-400 mt-1">Try modifying your search criteria or choosing general category options.</p>
-            </div>
-          )}
+        <div className="md:col-span-2">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Return</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <input type="date" data-testid="return-date"
+              disabled={tripType === "one_way"} min={departureDate}
+              value={returnDate} onChange={(e) => setReturnDate(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-3.5 text-white text-sm disabled:opacity-40" />
+          </div>
+        </div>
+
+        <div className="md:col-span-1">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Pax</label>
+          <div className="relative">
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <input type="number" min="1" max="9" data-testid="passengers"
+              value={passengers} onChange={(e) => setPassengers(Math.max(1, +e.target.value))}
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-2 py-3.5 text-white text-sm" />
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+
+      @@ -1,113 +1,79 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import AirportSelect from "./AirportSelect";
+import { ArrowLeftRight, Calendar, Users, Search } from "lucide-react";
+
+export default function FlightSearchWidget({ variant = "hero" }) {
+  const nav = useNavigate();
+  const today = new Date().toISOString().split("T")[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+  const [tripType, setTripType] = useState("one_way");
+  const [origin, setOrigin] = useState("DEL");
+  const [destination, setDestination] = useState("BOM");
+  const [departureDate, setDepartureDate] = useState(tomorrow);
+  const [returnDate, setReturnDate] = useState("");
+  const [passengers, setPassengers] = useState(1);
+  const [cabinClass, setCabinClass] = useState("economy");
+
+  const swap = () => { setOrigin(destination); setDestination(origin); };
+
+
+
+
+  const search = () => {
+    const q = new URLSearchParams({
+      origin, destination, departure_date: departureDate,
+      return_date: returnDate || "", trip_type: tripType,
+      passengers: String(passengers), cabin_class: cabinClass,
+    });
+    nav(`/search?${q.toString()}`);
+
+
+
+
+
+
+
+  };
+
+  return (
+    <div className={`glass rounded-2xl p-6 md:p-8 ${variant === "hero" ? "shadow-2xl" : ""}`}>
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { v: "one_way", label: "One Way" },
+          { v: "round_trip", label: "Round Trip" },
+          { v: "multi_city", label: "Multi City" },
+        ].map((o) => (
+          <button key={o.v} data-testid={`trip-${o.v}`}
+            onClick={() => setTripType(o.v)}
+            className={`px-5 py-2 rounded-full text-sm font-medium transition ${
+              tripType === o.v ? "bg-amber-400 text-[#0B132B]" : "bg-white/5 text-white/80 hover:bg-white/10"}`}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+        <div className="md:col-span-3">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">From</label>
+          <AirportSelect testId="from-airport" value={origin} onChange={setOrigin} placeholder="Origin" />
+        </div>
+
+        <div className="md:col-span-1 flex justify-center pb-3">
+          <button onClick={swap} data-testid="swap-airports"
+            className="w-10 h-10 rounded-full glass-light hover:av-bg-gold hover:text-[#0B132B] transition grid place-items-center">
+            <ArrowLeftRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="md:col-span-3">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">To</label>
+          <AirportSelect testId="to-airport" value={destination} onChange={setDestination} placeholder="Destination" />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Departure</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <input type="date" data-testid="departure-date" min={today}
+              value={departureDate} onChange={(e) => setDepartureDate(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-3.5 text-white text-sm" />
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Return</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <input type="date" data-testid="return-date"
+              disabled={tripType === "one_way"} min={departureDate}
+              value={returnDate} onChange={(e) => setReturnDate(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-3.5 text-white text-sm disabled:opacity-40" />
+          </div>
+        </div>
+
+        <div className="md:col-span-1">
+          <label className="text-[10px] tracking-[0.2em] uppercase text-amber-400/90 mb-2 block">Pax</label>
+          <div className="relative">
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+            <input type="number" min="1" max="9" data-testid="passengers"
+              value={passengers} onChange={(e) => setPassengers(Math.max(1, +e.target.value))}
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-2 py-3.5 text-white text-sm" />
+          </div>
+        </div>
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
