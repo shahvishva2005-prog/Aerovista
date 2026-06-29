@@ -1,159 +1,121 @@
 import React, { useState } from "react";
+import FlightSearchWidget from "../components/FlightSearchWidget";
+import { api, fmtINR } from "../lib/api";
+import { Plane, Clock, Calendar } from "lucide-react";
 
-// Coordinate directory for immediate client-side great-circle computations
-const AIRPORT_COORDINATES = {
-  DEL: { lat: 28.5562, lon: 77.1000 },
-  BOM: { lat: 19.0896, lon: 72.8656 },
-  BLR: { lat: 12.9556, lon: 77.6711 },
-  GOI: { lat: 15.3800, lon: 73.8314 },
-  DXB: { lat: 25.2528, lon: 55.3644 },
-  LHR: { lat: 51.4700, lon: -0.4543 },
-  SIN: { lat: 1.3644, lon: 103.9915 },
-  JFK: { lat: 40.6413, lon: -73.7781 },
-  BKK: { lat: 13.6900, lon: 100.7501 }
-};
+export default function FlightSearchPage() {
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [currentRouteLabel, setCurrentRouteLabel] = useState("");
 
-export default function FlightSearchWidget({ onSearch }) {
-  const [tripType, setTripType] = useState("one-way");
-  const [form, setForm] = useState({ origin: "", destination: "", date: "", returnDate: "" });
-  const [liveDuration, setLiveDuration] = useState("");
-
-  const getTodayDateString = () => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  };
-
-  const calculateLiveDuration = (fromCode, toCode) => {
-    const p1 = AIRPORT_COORDINATES[fromCode.toUpperCase().trim()];
-    const p2 = AIRPORT_COORDINATES[toCode.toUpperCase().trim()];
-    if (!p1 || !p2) {
-      setLiveDuration("");
-      return;
-    }
-    const R = 6371;
-    const dLat = ((p2.lat - p1.lat) * Math.PI) / 180;
-    const dLon = ((p2.lon - p1.lon) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos((p1.lat * Math.PI) / 180) * Math.cos((p2.lat * Math.PI) / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c;
+  const handleSearch = async (criteria) => {
+    setLoading(true);
+    setSearched(true);
+    setCurrentRouteLabel(`${criteria.origin} ➔ ${criteria.destination}`);
     
-    const totalMins = Math.round((distance / 800) * 60) + 20;
-    setLiveDuration(`${Math.floor(totalMins / 60)}h ${totalMins % 60}m`);
-  };
-
-  const handleFieldChange = (field, val) => {
-    const nextForm = { ...form, [field]: val };
-    setForm(nextForm);
-    if (field === "origin" || field === "destination") {
-      calculateLiveDuration(nextForm.origin, nextForm.destination);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (onSearch) {
-      onSearch({
-        tripType,
-        origin: form.origin.trim().toUpperCase(),
-        destination: form.destination.trim().toUpperCase(),
-        date: form.date,
-        returnDate: tripType === "round-trip" ? form.returnDate : null,
-        estimatedDuration: liveDuration || null
-      });
+    try {
+      const res = await api.get("/flights/search", { params: criteria });
+      setFlights(res.data);
+    } catch (err) {
+      console.error(err);
+      setFlights([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* 🔄 Navigation Option Tabs matching screenshot styles */}
-      <div className="flex gap-3 pl-1">
-        {["one-way", "round-trip", "multi-city"].map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => setTripType(type)}
-            className={`text-xs font-bold px-4 py-2 rounded-full transition-all tracking-wide capitalize ${
-              tripType === type ? "bg-yellow-500 text-slate-950" : "bg-slate-800/60 text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            {type.replace("-", " ")}
-          </button>
-        ))}
-      </div>
+    <div className="min-h-screen bg-[#0b0f19] text-white py-12 px-4 flex flex-col justify-between">
+      <div className="max-w-6xl mx-auto w-full space-y-8 flex-grow mb-12">
+        
+        <FlightSearchWidget onSearch={handleSearch} />
 
-      {/* Main Base Widget Card Container */}
-      <form onSubmit={handleSubmit} className="bg-[#111c44] border border-slate-800 p-6 rounded-xl shadow-lg space-y-4">
-        <div className={`grid grid-cols-1 gap-4 items-end ${tripType === "round-trip" ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 tracking-wider">DEPARTING FROM</label>
-            <input
-              type="text"
-              placeholder="E.G. DEL"
-              maxLength={3}
-              required
-              value={form.origin}
-              onChange={(e) => handleFieldChange("origin", e.target.value)}
-              className="w-full bg-[#0b0f19] border border-slate-700 rounded-lg p-2.5 text-sm font-bold text-white uppercase placeholder-slate-600 focus:outline-none focus:border-yellow-500 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 tracking-wider">ARRIVING AT</label>
-            <input
-              type="text"
-              placeholder="E.G. BOM"
-              maxLength={3}
-              required
-              value={form.destination}
-              onChange={(e) => handleFieldChange("destination", e.target.value)}
-              className="w-full bg-[#0b0f19] border border-slate-700 rounded-lg p-2.5 text-sm font-bold text-white uppercase placeholder-slate-600 focus:outline-none focus:border-yellow-500 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 tracking-wider">TRAVEL DATE</label>
-            <input
-              type="date"
-              required
-              min={getTodayDateString()}
-              value={form.date}
-              onChange={(e) => handleFieldChange("date", e.target.value)}
-              className="w-full bg-[#0b0f19] border border-slate-700 rounded-lg p-2.5 text-sm font-medium text-white focus:outline-none focus:border-yellow-500 transition-all [color-scheme:dark] cursor-pointer"
-            />
-          </div>
-
-          {tripType === "round-trip" && (
-            <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 tracking-wider">RETURN DATE</label>
-              <input
-                type="date"
-                required
-                min={form.date || getTodayDateString()}
-                value={form.returnDate}
-                onChange={(e) => handleFieldChange("returnDate", e.target.value)}
-                className="w-full bg-[#0b0f19] border border-slate-700 rounded-lg p-2.5 text-sm font-medium text-white focus:outline-none focus:border-yellow-500 transition-all [color-scheme:dark] cursor-pointer"
-              />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-4">
+          
+          {/* Sidebar Section */}
+          <div className="bg-[#111c44] border border-slate-800 p-5 rounded-xl space-y-6">
+            <h3 className="text-xs font-bold text-yellow-500 tracking-wider uppercase">FILTERS</h3>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-400">Sort By</label>
+              {["Price (Low to High)", "Duration", "Departure Time"].map((f, i) => (
+                <label key={f} className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                  <input type="radio" name="sort" defaultChecked={i===0} className="text-yellow-500 focus:ring-0 bg-[#0b0f19]" /> {f}
+                </label>
+              ))}
             </div>
-          )}
-
-          <button
-            type="submit"
-            className={`w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black text-sm p-3 rounded-lg shadow-md tracking-wide transition-all ${tripType === "round-trip" ? "" : "md:col-span-1"}`}
-          >
-            SEARCH ROUTING
-          </button>
-        </div>
-
-        {/* Real-time calculated duration box inside the panel */}
-        {liveDuration && (
-          <div className="bg-[#0b0f19]/80 border border-slate-800 px-4 py-2 rounded-lg text-xs text-slate-400 flex justify-between items-center">
-            <span>Route Mapped: <strong>{form.origin.toUpperCase()} ➔ {form.destination.toUpperCase()}</strong></span>
-            <span>Calculated Duration: <strong className="text-yellow-500">{liveDuration}</strong></span>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-400">Stops</label>
+              {["Any", "Non-stop", "1 Stop"].map((f, i) => (
+                <label key={f} className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                  <input type="radio" name="stops" defaultChecked={i===0} className="text-yellow-500 focus:ring-0 bg-[#0b0f19]" /> {f}
+                </label>
+              ))}
+            </div>
           </div>
-        )}
-      </form>
+
+          {/* Results Main Section Panel Grid Area */}
+          <div className="md:col-span-3 space-y-4 min-h-[400px]">
+            {loading && (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                <p className="text-slate-400 text-sm">Querying active flight rosters...</p>
+              </div>
+            )}
+
+            {!loading && !searched && (
+              <div className="bg-[#111c44]/40 border border-dashed border-slate-800 rounded-xl p-12 text-center py-24">
+                <p className="font-semibold text-slate-400 mb-1">Ready for Search</p>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">Enter your departures and destinations to render the daily flight matrices.</p>
+              </div>
+            )}
+
+            {!loading && flights.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h2 className="text-xl font-bold tracking-tight uppercase font-black text-slate-200">{currentRouteLabel}</h2>
+                  <span className="text-xs font-bold text-yellow-500">{flights.length} flights tracked</span>
+                </div>
+
+                {flights.map((flight) => (
+                  <div key={flight.id} className="bg-[#111c44] border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 transition-all hover:border-yellow-500/30">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-yellow-500/10 p-3 rounded-lg text-yellow-500"><Plane className="w-5 h-5 -rotate-45" /></div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-yellow-500">{flight.flight_number}</span>
+                          <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded uppercase font-semibold">{flight.aircraft}</span>
+                        </div>
+                        <h4 className="text-base font-bold mt-1">{flight.origin} ➔ {flight.destination}</h4>
+                        <div className="flex gap-4 text-xs text-slate-400 mt-1">
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {flight.departure_time} - {flight.arrival_time}</span>
+                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Term {flight.terminal || "3"} • Gate {flight.gate || "A1"}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center md:text-right border-t md:border-t-0 pt-3 md:pt-0 border-slate-800 flex md:flex-col justify-between md:justify-center items-center md:items-end gap-1 w-full md:w-auto">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 block tracking-wider uppercase">Per Passenger</span>
+                        <span className="text-xl font-black text-white">{fmtINR(flight.base_price)}</span>
+                      </div>
+                      <button className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-md transition-all shadow-sm">Select ➔</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!loading && searched && flights.length === 0 && (
+              <div className="bg-[#111c44] border border-slate-800 rounded-xl p-12 text-center text-slate-400">
+                <div className="text-yellow-500 mb-3"><Plane className="w-8 h-8" /></div>
+                <p className="font-semibold text-white mb-1">No flights found for this route on selected date.</p>
+                <p className="text-xs text-slate-500">Try different dates, alternate airport segments, or expand filter tags.</p>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }
