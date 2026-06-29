@@ -1,126 +1,122 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import FlightSearchWidget from "../components/FlightSearchWidget";
+import { api, fmtINR } from "../lib/api";
+import { Plane, Clock, Calendar } from "lucide-react";
 
-export default function SearchFlights({ onSearch }) {
-  const [tripType, setTripType] = useState('one-way');
-  const [passengerCategory, setPassengerCategory] = useState('general');
-  const [segments, setSegments] = useState([{ origin: '', destination: '', date: '' }]);
-  const [returnDate, setReturnDate] = useState('');
+export default function FlightSearchPage() {
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [routeLabel, setRouteLabel] = useState("");
 
-  const handleAddSegment = () => {
-    if (segments.length < 4) {
-      setSegments([...segments, { origin: '', destination: '', date: '' }]);
+  const handleSearchExecution = async (criteria) => {
+    setLoading(true);
+    setSearched(true);
+    setRouteLabel(`${criteria.origin} ➔ ${criteria.destination}`);
+    try {
+      const res = await api.get("/flights/search", { params: criteria });
+      setFlights(res.data);
+    } catch (err) {
+      console.error(err);
+      setFlights([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleUpdateSegment = (index, field, value) => {
-    const updated = [...segments];
-    updated[index][field] = value.toUpperCase();
-    setSegments(updated);
-  };
-
   return (
-    <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-6 max-w-4xl mx-auto my-6 text-slate-800">
-      <h2 className="text-xl font-bold text-slate-900 mb-4">Book Your Journey</h2>
-      
-      {/* Trip Type Selectors */}
-      <div className="flex gap-4 mb-6 border-b border-slate-100 pb-3">
-        {['one-way', 'round-trip', 'multi-city'].map((type) => (
-          <button
-            key={type}
-            onClick={() => setTripType(type)}
-            className={`capitalize pb-2 px-1 text-sm font-semibold transition-all ${
-              tripType === type ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            {type.replace('-', ' ')}
-          </button>
-        ))}
-      </div>
+    <div className="min-h-screen bg-[#0b0f19] text-white py-10 px-4 flex flex-col justify-between">
+      <div className="max-w-7xl mx-auto w-full space-y-8 flex-grow">
+        
+        {/* Render Form Widget */}
+        <FlightSearchWidget onSearch={handleSearchExecution} />
 
-      {/* Dynamic Segment Rendering */}
-      <div className="space-y-4">
-        {segments.map((segment, idx) => (
-          <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1">FROM</label>
-              <input
-                type="text"
-                placeholder="e.g. DEL"
-                maxLength={3}
-                value={segment.origin}
-                onChange={(e) => handleUpdateSegment(idx, 'origin', e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-md p-2 text-sm focus:outline-indigo-500 text-slate-900 font-semibold"
-              />
+        {/* Split Filtering/Results Column */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-2">
+          
+          {/* Left Filter Sidebar */}
+          <div className="bg-[#111c44] border border-slate-800 p-5 rounded-2xl space-y-6 shadow-xl">
+            <h3 className="text-xs font-black text-yellow-500 tracking-widest uppercase border-b border-slate-800 pb-2">FILTERS</h3>
+            <div className="space-y-2.5">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Sort By</label>
+              {["Price (Low to High)", "Duration", "Departure Time"].map((f, i) => (
+                <label key={f} className="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer font-medium hover:text-white transition-all">
+                  <input type="radio" name="sort" defaultChecked={i===0} className="text-yellow-500 focus:ring-0 bg-[#0b0f19] border-slate-700" /> {f}
+                </label>
+              ))}
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1">TO</label>
-              <input
-                type="text"
-                placeholder="e.g. BOM"
-                maxLength={3}
-                value={segment.destination}
-                onChange={(e) => handleUpdateSegment(idx, 'destination', e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-md p-2 text-sm focus:outline-indigo-500 text-slate-900 font-semibold"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1">DEPARTURE DATE</label>
-              <input
-                type="date"
-                value={segment.date}
-                onChange={(e) => handleUpdateSegment(idx, 'date', e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-md p-2 text-sm focus:outline-indigo-500 text-slate-900"
-              />
+            <div className="space-y-2.5 border-t border-slate-800/80 pt-4">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Stops</label>
+              {["Any", "Non-stop", "1 Stop"].map((f, i) => (
+                <label key={f} className="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer font-medium hover:text-white transition-all">
+                  <input type="radio" name="stops" defaultChecked={i===0} className="text-yellow-500 focus:ring-0 bg-[#0b0f19] border-slate-700" /> {f}
+                </label>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Conditional Configuration Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        {tripType === 'round-trip' && (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 mb-1">RETURN DATE</label>
-            <input
-              type="date"
-              value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-              className="w-full bg-white border border-slate-300 rounded-md p-2 text-sm focus:outline-indigo-500 text-slate-900"
-            />
+          {/* Right Results Grid Panel Column */}
+          <div className="md:col-span-3 space-y-4 min-h-[450px]">
+            {loading && (
+              <div className="text-center py-20 bg-[#111c44]/30 border border-slate-800 rounded-2xl">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                <p className="text-slate-400 text-sm font-semibold">Scanning real-time carrier flight schedules...</p>
+              </div>
+            )}
+
+            {!loading && !searched && (
+              <div className="bg-[#111c44]/20 border border-dashed border-slate-800/80 rounded-2xl p-12 text-center py-24 flex flex-col justify-center items-center">
+                <p className="font-bold text-slate-400 text-base mb-1">Ready for Search</p>
+                <p className="text-xs text-slate-500 max-w-sm">Specify your departure codes and calendar dates to initialize live flight tracking.</p>
+              </div>
+            )}
+
+            {!loading && flights.length > 0 && (
+              <div className="space-y-4 animate-fadeIn">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h2 className="text-2xl font-black tracking-tight text-slate-200">{routeLabel}</h2>
+                  <span className="text-xs font-bold text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 rounded-md">{flights.length} flights tracked</span>
+                </div>
+
+                {flights.map((flight) => (
+                  <div key={flight.id} className="bg-[#111c44] border border-slate-800/70 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 transition-all hover:border-yellow-500/20 shadow-lg">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                      <div className="bg-yellow-500/10 p-3.5 rounded-xl text-yellow-500 hidden sm:block"><Plane className="w-5 h-5 -rotate-45" /></div>
+                      <div className="w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-yellow-500 tracking-wide">{flight.flight_number}</span>
+                          <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded uppercase font-bold tracking-wider">{flight.aircraft}</span>
+                        </div>
+                        <h4 className="text-xl font-black text-white mt-1">{flight.origin} ➔ {flight.destination}</h4>
+                        <div className="flex gap-5 text-xs text-slate-400 mt-2 font-medium">
+                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-500" /> {flight.departure_time} - {flight.arrival_time}</span>
+                          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-slate-500" /> Term {flight.terminal || "3"} • Gate {flight.gate || "A1"}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center md:text-right border-t md:border-t-0 pt-4 md:pt-0 border-slate-800/80 flex md:flex-col justify-between md:justify-center items-center md:items-end gap-2 w-full md:w-auto">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 block tracking-widest uppercase">Per Passenger</span>
+                        <span className="text-2xl font-black text-white tracking-tight">{fmtINR(flight.base_price)}</span>
+                      </div>
+                      <button className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black text-xs px-5 py-3 rounded-xl tracking-wider uppercase transition-all shadow-md">Select ➔</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!loading && searched && flights.length === 0 && (
+              <div className="bg-[#111c44] border border-slate-800 rounded-2xl p-16 text-center text-slate-400 shadow-xl flex flex-col justify-center items-center">
+                <div className="text-yellow-500/80 mb-4"><Plane className="w-10 h-10" /></div>
+                <p className="font-bold text-white text-lg mb-1">No flights found for this route on selected date.</p>
+                <p className="text-xs text-slate-500 max-w-sm">Try alternate dates, cross-check code inputs, or clear filter tags.</p>
+              </div>
+            )}
           </div>
-        )}
 
-        {tripType === 'multi-city' && segments.length < 4 && (
-          <button
-            onClick={handleAddSegment}
-            className="text-left text-sm font-semibold text-indigo-600 hover:text-indigo-800 self-end py-2"
-          >
-            + Add Another Flight Leg
-          </button>
-        )}
-
-        {/* Special Concession Fares & Corporate slots */}
-        <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1">SPECIAL CATEGORY / CONCESSIONS</label>
-          <select
-            value={passengerCategory}
-            onChange={(e) => setPassengerCategory(e.target.value)}
-            className="w-full bg-white border border-slate-300 rounded-md p-2 text-sm focus:outline-indigo-500 text-slate-900 font-medium"
-          >
-            <option value="general">Standard General Public Fare</option>
-            <option value="defence">Armed Forces Concession (15% Off)</option>
-            <option value="medical">Medical Practitioners Concession (10% Off)</option>
-            <option value="corporate">Corporate Account Booking slot (12% Off)</option>
-          </select>
         </div>
       </div>
-
-      <button
-        onClick={() => onSearch({ tripType, segments, returnDate, passengerCategory })}
-        className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md shadow-sm transition-all text-sm tracking-wide"
-      >
-        SEARCH FLIGHTS
-      </button>
     </div>
   );
 }
