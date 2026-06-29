@@ -1587,3 +1587,19 @@ async def startup_event():
                           coalesce=True, max_instances=1, replace_existing=True)
         scheduler.start()
         logger.info("Started APScheduler with hourly pre-departure upsell scan")
+
+
+# 🌟 APPLICATION INITIALIZATION 
+app = FastAPI(title="AeroVista Airlines API")
+
+# 🔒 STEP 1: RESOLVED CORS MIDDLEWARE (Fixes wildcard vs credential conflict)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Now fully allowed by the browser because credentials is False
+    allow_credentials=False,  # Unblocks the wildcard conflict (Bearer tokens work perfectly)
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 🛠️ STEP 2: ROUTERS DEFINITION
+api = APIRouter()
