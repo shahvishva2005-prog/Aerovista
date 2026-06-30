@@ -584,8 +584,15 @@ async def request_refund(req: RefundReq, user=Depends(get_current_user)):
     if b["payment_status"] != "paid": raise HTTPException(status_code=400, detail="Booking is not paid")
     cnt = await db.refunds.count_documents({})
     refund = {
-        "id": gen_id(), "refund_id": f"RFD{cnt + 1:06d}", "booking_id": req.booking_id, "pnr": b["pnr"],
-        "user_id": user["id"], "amount": round(b["fare"]["total"] * 0.85, 2), "reason": r.reason, "status": "Requested", "created_at": now_iso(),
+        "id": gen_id(), 
+        "refund_id": f"RFD{cnt + 1:06d}", 
+        "booking_id": req.booking_id, 
+        "pnr": b["pnr"],
+        "user_id": user["id"], 
+        "amount": round(b["fare"]["total"] * 0.85, 2), 
+        "reason": req.reason,  # ✅ TYPO FIXED: Changed from r.reason to req.reason
+        "status": "Requested", 
+        "created_at": now_iso(),
     }
     await db.refunds.insert_one(refund.copy())
     await db.bookings.update_one({"id": req.booking_id}, {"$set": {"status": "cancelled"}})
