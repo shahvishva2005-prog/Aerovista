@@ -41,12 +41,14 @@ const TESTIMONIALS = [
 ];
 
 export default function Home() {
+  export default function Home() {
   const [stats, setStats] = useState({});
+  // Add this line back safely inside the function:
+  const [passengers, setPassengers] = useState([{ first_name: "", last_name: "", type: "adult" }]);
 
   useEffect(() => {
     api.get("/stats").then((r) => setStats(r.data)).catch(() => {});
   }, []);
-
   return (
     <div data-testid="home-page">
       {/* HERO */}
