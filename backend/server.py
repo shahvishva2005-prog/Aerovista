@@ -34,7 +34,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 mongo_url = os.environ["MONGO_URL"]
-client = AsyncIOMotorClient(mongo_url)
+# Optimized connection pooling limits to prevent Free-tier connection exhaustion
+client = AsyncIOMotorClient(mongo_url, maxPoolSize=10, minPoolSize=1)
 db = client[os.environ["DB_NAME"]]
 
 # 🌟 APPLICATION INITIALIZATION 
@@ -365,7 +366,6 @@ async def search_flights(req: FlightSearchReq):
     
     enriched = []
     for f in flights:
-        # Timezone Normalization Fix
         dep_iso_str = f["departure_iso"].replace("Z", "+00:00")
         dep_dt = datetime.fromisoformat(dep_iso_str).replace(tzinfo=timezone.utc)
         
@@ -396,11 +396,17 @@ async def flight_detail(flight_id: str):
             f = route_pool[0]
             f["id"] = flight_id
     else:
-        raise HTTPException(status_code=404, detail="Flight configuration string missing date context")
+        org, dst = "DEL", "BOM"
+        today_str = datetime.now(timezone.utc).date().isoformat()
+        route_pool = _generate_flights_for_route(org, dst, today_str)
+        f = route_pool[0]
+        f["id"] = flight_id
 
     rows, cols = 30, ["A", "B", "C", "D", "E", "F"]
-    random.seed(sum(ord(c) for c in flight_id))
-    occupied = set(random.sample([f"{r}{c}" for r in range(1, rows + 1) for c in cols], k=80))
+    seed_hash = sum(ord(c) for c in flight_id)
+    random.seed(seed_hash)
+    
+    occupied = set(random.sample([f"{r}{c}" for r in range(1, rows + 1) for c in cols], k=45))
     seat_map = []
     for r in range(1, rows + 1):
         for c in cols:
@@ -945,7 +951,7 @@ async def list_reviews(limit: int = 50):
 async def career_apply(req: CareerApplicationReq):
     doc = {"id": gen_id(), "name": req.name, "email": req.email, "mobile": req.mobile, "role_applied": req.role_applied, "experience_years": req.experience_years, "current_company": req.current_company or "", "cover_letter": req.cover_letter, "status": "Received", "created_at": now_iso()}
     await db.career_applications.insert_one(doc.copy())
-    return {k: v for h, v in doc.items() if k != "_id"}
+    return {k: v for k, v in doc.items() if k != "_id"}
 
 
 @api.get("/admin/career-applications")
