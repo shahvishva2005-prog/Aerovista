@@ -342,35 +342,48 @@ async def me(user=Depends(get_current_user)):
 
 
 # ===== Flights Search Operations =====
+# ===== Flights Search Operations =====
 @api.post("/flights/search")
 async def search_flights(req: FlightSearchReq):
-    flights = _generate_flights_for_route(req.origin, req.destination, req.departure_date)
-    
-    # 🔒 8-Hour Real-Time Guard Clamping Matrix
-    now = datetime.now(timezone.utc)
-    booking_cutoff = now + timedelta(hours=8)
-    
-    enriched = []
-    for f in flights:
-        dep_iso_str = f["departure_iso"].replace("Z", "+00:00")
-        dep_dt = datetime.fromisoformat(dep_iso_str).replace(tzinfo=timezone.utc)
+    try:
+        flights = _generate_flights_for_route(req.origin, req.destination, req.departure_date)
         
-        if dep_dt < booking_cutoff:
-            continue
+        # 🔒 8-Hour Real-Time Guard Clamping Matrix
+        now = datetime.now(timezone.utc)
+        booking_cutoff = now + timedelta(hours=8)
+        
+        enriched = []
+        for f in flights:
+            dep_iso_str = f["departure_iso"].replace("Z", "+00:00")
+            dep_dt = datetime.fromisoformat(dep_iso_str).replace(tzinfo=timezone.utc)
             
-        ratio = f["available_seats"] / f["total_seats"]
-        mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
-        base = f["base_price"] * mult
-        price, reasons = _calc_dynamic_price(base, dep_dt, ratio)
+            if dep_dt < booking_cutoff:
+                continue
+                
+            ratio = f["available_seats"] / f["total_seats"]
+            mult = {"economy": 1.0, "premium_economy": 1.6, "business": 2.8, "first": 4.5}.get(req.cabin_class, 1.0)
+            base = f["base_price"] * mult
+            price, reasons = _calc_dynamic_price(base, dep_dt, ratio)
+            
+            f["price"] = price
+            f["price_reasons"] = reasons
+            f["cabin_class"] = req.cabin_class
+            enriched.append(f)
+
+        return {"outbound": enriched, "return": [], "trip_type": req.trip_type, "passengers": req.passengers}
+
+    except Exception as e:
+        # This logs the real crash directly to your Render Logs terminal!
+        logger.error(f"CRITICAL FLIGHT SEARCH CRASH: {str(e)}", exc_info=True)
         
-        f["price"] = price
-        f["price_reasons"] = reasons
-        f["cabin_class"] = req.cabin_class
-        enriched.append(f)
-
-    return {"outbound": enriched, "return": [], "trip_type": req.trip_type, "passengers": req.passengers}
-
-
+        # This bypasses the CORS block so the real error message makes it to your browser console
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": "Internal search failure", "error_message": str(e)}
+        )
+        response.headers["Access-Control-Allow-Origin"] = "https://aerovista.pages.dev"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 @api.get("/flights/{flight_id}")
 async def flight_detail(flight_id: str):
     parts = flight_id.split("-")
