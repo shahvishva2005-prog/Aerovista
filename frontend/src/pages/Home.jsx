@@ -1,24 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plane, Award, Globe, ShieldCheck, Sparkles, Star, ArrowRight, MapPin } from "lucide-react";
+import { Plane, Award, Globe, ShieldCheck, Sparkles, Star, ArrowRight } from "lucide-react";
 import FlightSearchWidget from "../components/FlightSearchWidget";
 import WorldMap from "../components/WorldMap";
 import { api } from "../lib/api";
-import PassengerDropdown from "../components/PassengerDropdown";
-
-
 
 const HERO_IMG = "https://images.unsplash.com/photo-1583416750470-965b2707b355?w=1920&q=85";
-// Inside your Search Form State initialization context container:
-// const [passengers, setPassengers] = useState([{ first_name: "", last_name: "", type: "adult" }]);
-
-<div className="w-full md:w-1/4">
-  <PassengerDropdown 
-    value={passengers} 
-    onChange={(updatedArray) => setPassengers(updatedArray)} 
-  />
-</div>
 
 const DESTINATIONS = [
   { code: "DXB", city: "Dubai", country: "United Arab Emirates", img: "https://images.pexels.com/photos/18341554/pexels-photo-18341554.jpeg?auto=compress&cs=tinysrgb&w=940", span: "md:col-span-5 md:row-span-2" },
@@ -145,7 +133,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-8 gap-4 md:gap-5 auto-rows-[220px]">
-            {DESTINATIONS.map((d, i) => (
+            {DESTINATIONS.map((d) => (
               <Link key={d.code} to={`/search?origin=DEL&destination=${d.code}`}
                 data-testid={`dest-${d.code}`}
                 className={`group relative rounded-2xl overflow-hidden ${d.span}`}>
