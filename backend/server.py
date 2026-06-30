@@ -120,32 +120,6 @@ def _fmt_duration(mins: int) -> str:
     return f"{mins // 60}h {mins % 60:02d}m"
 
 
-def _calc_dynamic_price(base: float, departure_dt: datetime, seats_left_ratio: float) -> tuple:
-    reasons = []
-    price = base
-    if departure_dt.weekday() in (4, 5, 6):
-        price *= 1.15
-        reasons.append({"label": "Weekend Demand", "factor": "+15%"})
-    delta_days = (departure_dt.date() - datetime.now(timezone.utc).date()).days
-    if delta_days <= 3:
-        price *= 1.20
-        reasons.append({"label": "Last-minute Booking", "factor": "+20%"})
-    elif delta_days <= 14:
-        price *= 1.08
-        reasons.append({"label": "Peak Window", "factor": "+8%"})
-    if departure_dt.month in (12, 3):
-        price *= 1.10
-        reasons.append({"label": "Festival Season", "factor": "+10%"})
-    if seats_left_ratio < 0.2:
-        price *= 1.25
-        reasons.append({"label": "Low Seat Availability", "factor": "+25%"})
-    elif delta_days <= 14 and seats_left_ratio < 0.4:
-        price *= 1.10
-        reasons.append({"label": "Limited Seats", "factor": "+10%"})
-    if not reasons:
-        reasons.append({"label": "Base Fare", "factor": "Standard"})
-    return round(price, 2), reasons
-
 
 # --- Dynamic Flight Generation Matrix Engine ---
 def _generate_flights_for_route(origin: str, destination: str, target_date_str: str) -> List[dict]:
@@ -168,7 +142,8 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
     o_air = airport_by_iata(origin) or {"city": origin, "name": "Terminal Hub"}
     d_air = airport_by_iata(destination) or {"city": destination, "name": "Terminal Hub"}
     
-    duration_mins = _haversine_minutes(origin, destination)
+    # 1. Fetch perfect distance and time calculation arrays
+    distance_km, duration_mins = _calculate_flight_metrics(origin, destination)
     
     generated = []
     for idx, sch in enumerate(schedules):
@@ -194,8 +169,12 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
             "arrival_time": arr_dt.strftime("%H:%M"),
             "departure_iso": dep_dt.isoformat(),
             "arrival_iso": arr_dt.isoformat(),
+            
+            # 👇 NEW METRICS ASSIGNED HERE 👇
+            "distance_km": distance_km,
             "duration_mins": duration_mins,
             "duration": _fmt_duration(duration_mins),
+            
             "stops": 0,
             "layover": None,
             "aircraft": "Airbus A320neo" if total_seats < 200 else "Boeing 787 Dreamliner",
@@ -208,10 +187,6 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
             "available_seats": avail_seats,
             "status": "scheduled"
         })
-        
-    return generated
-
-
 # ===== Seed Endpoint =====
 @api.get("/admin/seed")
 async def admin_seed(force: bool = False):
