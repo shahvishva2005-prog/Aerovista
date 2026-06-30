@@ -19,9 +19,13 @@ export default function FlightSearchWidget({ variant = "hero" }) {
 
   const search = () => {
     const q = new URLSearchParams({
-      origin, destination, departure_date: departureDate,
-      return_date: returnDate || "", trip_type: tripType,
-      passengers: String(passengers), cabin_class: cabinClass,
+      origin, 
+      destination, 
+      departure_date: departureDate,
+      return_date: tripType === "round_trip" ? (returnDate || "") : "", 
+      trip_type: tripType,
+      passengers: String(passengers), 
+      cabin_class: cabinClass,
     });
     nav(`/search?${q.toString()}`);
   };
