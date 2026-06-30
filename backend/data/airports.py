@@ -233,8 +233,4 @@ def get_airports():
 
 
 def airport_by_iata(code: str):
-    code = (code or "").upper()
-    for a in AIRPORTS:
-        if a["iata"] == code:
-            return a
-    return None
+    return next((a for a in AIRPORTS if a["iata"] == code.upper()), None)
