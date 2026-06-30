@@ -81,31 +81,40 @@ scheduler = AsyncIOScheduler()
 PROJECT_NO_ID = {"_id": 0}
 
 
-def _haversine_minutes(o_code: str, d_code: str) -> int:
-    """Calculates exact real flight time using Great-Circle Distance metrics."""
+def _calculate_flight_metrics(o_code: str, d_code: str) -> tuple:
+    """
+    Computes precise Great-Circle distance using the Haversine equation,
+    returning an accurate flight distance (km) and operational duration (minutes).
+    """
     o_air = airport_by_iata(o_code.upper())
     d_air = airport_by_iata(d_code.upper())
     
-    coords = {
-        "DEL": (28.5562, 77.1000), "BOM": (19.0896, 72.8656), "BLR": (13.1986, 77.7066),
-        "DXB": (25.2532, 55.3657), "JFK": (40.6413, -73.7781), "LHR": (51.4700, -0.4543),
-        "SIN": (1.3644, 103.9915), "CDG": (49.0097, 2.5479), "FRA": (50.0379, 8.5622)
-    }
+    # Accurate fallback defaults (DEL -> BOM coordinates) if code lookups fail
+    lat1, lon1 = (28.5562, 77.1000) if not o_air else (o_air["lat"], o_air["lon"])
+    lat2, lon2 = (19.0896, 72.8656) if not d_air else (d_air["lat"], d_air["lon"])
     
-    lat1, lon1 = coords.get(o_code.upper(), (28.5, 77.1)) if not o_air else (o_air.get("lat", 28.5), o_air.get("lon", 77.1))
-    lat2, lon2 = coords.get(d_code.upper(), (19.0, 72.8)) if not d_air else (d_air.get("lat", 19.0), d_air.get("lon", 72.8))
+    # Convert decimal degrees to radians
+    phi1, lambda1 = math.radians(lat1), math.radians(lon1)
+    phi2, lambda2 = math.radians(lat2), math.radians(lat2)
     
-    R = 6371.0  
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
+    # Haversine core math
+    dphi = phi2 - phi1
+    dlambda = lambda2 - lambda1
     
-    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    distance_km = R * c
     
+    # Earth's mean radius in kilometers
+    R = 6371.0  
+    distance_km = round(R * c, 1)
+    
+    # Cruising performance math: 800 km/h airline speed + 20 minute taxiing/climb runway delay buffer
     flight_time_mins = int((distance_km / 800.0) * 60) + 20
-    return max(45, flight_time_mins)  
-
+    
+    # Ensure a hard minimum of 45 minutes for any regional hop
+    final_mins = max(45, flight_time_mins)
+    
+    return distance_km, final_mins
 
 def _fmt_duration(mins: int) -> str:
     return f"{mins // 60}h {mins % 60:02d}m"
