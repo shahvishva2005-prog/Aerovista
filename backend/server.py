@@ -142,6 +142,7 @@ def _calc_dynamic_price(base: float, departure_dt: datetime, seats_left_ratio: f
 
 # --- Dynamic Flight Generation Matrix Engine ---
 def _generate_flights_for_route(origin: str, destination: str, target_date_str: str) -> List[dict]:
+    """Generates exactly 4 consistent, unique flights for any route combination on a given day."""
     origin = origin.upper()
     destination = destination.upper()
     
@@ -175,7 +176,7 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
         avail_seats = total_seats - random.randint(15, total_seats // 2)
 
         generated.append({
-            "id": f"AV-{origin}-{destination}-{sch['flight_no']}",
+            "id": f"AV-{origin}-{destination}-{target_date_str}-{sch['flight_no']}",
             "flight_number": f"AV{100 + idx * 25 + (seed_val % 40):03d}",
             "origin": origin, 
             "origin_city": o_air.get("city", origin),
@@ -387,16 +388,15 @@ async def search_flights(req: FlightSearchReq):
 @api.get("/flights/{flight_id}")
 async def flight_detail(flight_id: str):
     parts = flight_id.split("-")
-    if len(parts) >= 4 and parts[0] == "AV":
-        org, dst = parts[1], parts[2]
-        today_str = datetime.now(timezone.utc).date().isoformat()
-        route_pool = _generate_flights_for_route(org, dst, today_str)
+    if len(parts) >= 5 and parts[0] == "AV":
+        org, dst, target_date_str = parts[1], parts[2], parts[3]
+        route_pool = _generate_flights_for_route(org, dst, target_date_str)
         f = next((item for item in route_pool if item["id"] == flight_id), None)
         if not f:
             f = route_pool[0]
             f["id"] = flight_id
     else:
-        raise HTTPException(status_code=404, detail="Flight configuration string missing")
+        raise HTTPException(status_code=404, detail="Flight configuration string missing date context")
 
     rows, cols = 30, ["A", "B", "C", "D", "E", "F"]
     random.seed(sum(ord(c) for c in flight_id))
@@ -417,14 +417,12 @@ async def flight_detail(flight_id: str):
 @api.post("/bookings")
 async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
     parts = req.flight_id.split("-")
-    if len(parts) >= 4:
-         org, dst = parts[1], parts[2]
-         today_str = datetime.now(timezone.utc).date().isoformat()
-         pool = _generate_flights_for_route(org, dst, today_str)
-         flight = pool[0]
-         flight["id"] = req.flight_id
+    if len(parts) >= 5 and parts[0] == "AV":
+         org, dst, target_date_str = parts[1], parts[2], parts[3]
+         pool = _generate_flights_for_route(org, dst, target_date_str)
+         flight = next((item for item in pool if item["id"] == req.flight_id), pool[0])
     else:
-         raise HTTPException(status_code=404, detail="Flight identifier invalid")
+         raise HTTPException(status_code=404, detail="Flight identifier invalid or missing date context")
 
     dep_iso_str = flight["departure_iso"].replace("Z", "+00:00")
     dep_dt = datetime.fromisoformat(dep_iso_str).replace(tzinfo=timezone.utc)
@@ -599,8 +597,8 @@ async def reschedule(req: RescheduleReq, user=Depends(get_current_user)):
     b = await db.bookings.find_one({"id": req.booking_id, "user_id": user["id"]}, PROJECT_NO_ID)
     if not b: raise HTTPException(status_code=404, detail="Not found")
     parts = req.new_flight_id.split("-")
-    today_str = datetime.now(timezone.utc).date().isoformat()
-    new_flight = _generate_flights_for_route(parts[1], parts[2], today_str)[0]
+    org, dst, target_date_str = parts[1], parts[2], parts[3]
+    new_flight = _generate_flights_for_route(org, dst, target_date_str)[0]
     new_flight["id"] = req.new_flight_id
     diff = round(max(0, new_flight["base_price"] - b["flight_snapshot"]["base_price"]) * len(b["passengers"]), 2)
     history = b.get("reschedule_history", [])
@@ -947,7 +945,7 @@ async def list_reviews(limit: int = 50):
 async def career_apply(req: CareerApplicationReq):
     doc = {"id": gen_id(), "name": req.name, "email": req.email, "mobile": req.mobile, "role_applied": req.role_applied, "experience_years": req.experience_years, "current_company": req.current_company or "", "cover_letter": req.cover_letter, "status": "Received", "created_at": now_iso()}
     await db.career_applications.insert_one(doc.copy())
-    return {k: v for k, v in doc.items() if k != "_id"}
+    return {k: v for h, v in doc.items() if k != "_id"}
 
 
 @api.get("/admin/career-applications")
