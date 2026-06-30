@@ -34,14 +34,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 mongo_url = os.environ["MONGO_URL"]
-# Optimized connection pooling limits to prevent Free-tier connection exhaustion
 client = AsyncIOMotorClient(mongo_url, maxPoolSize=10, minPoolSize=1)
 db = client[os.environ["DB_NAME"]]
 
 # 🌟 APPLICATION INITIALIZATION 
 app = FastAPI(title="AeroVista Airlines API")
 
-# 🔒 STEP 1: MOUNT ROBUST MIDDLEWARE ENGINE (Bypasses preflight wildcard patterns)
+# 🔒 STEP 1: MOUNT ROBUST MIDDLEWARE ENGINE
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -53,7 +52,6 @@ app.add_middleware(
 # 🛠️ STEP 2: MANDATORY CORS ERROR BINDING EXCEPTION HANDLER
 @app.exception_handler(HTTPException)
 async def cors_error_protection_handler(request, exc):
-    """Guarantees that security headers return to the browser even during auth failures."""
     response = JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail, "success": False}
@@ -66,7 +64,6 @@ async def cors_error_protection_handler(request, exc):
 # 🚀 STEP 3: EXPLICIT PREFLIGHT OPTIONS ABSORBER
 @app.options("/{rest_of_path:path}")
 async def dynamic_preflight_override(rest_of_path: str):
-    """Intercepts browser options handshakes before dependencies can cause a crash."""
     response = JSONResponse(status_code=200, content={"status": "preflight_acknowledged"})
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "*"
@@ -143,7 +140,6 @@ def _calc_dynamic_price(base: float, departure_dt: datetime, seats_left_ratio: f
 
 # --- Dynamic Flight Generation Matrix Engine ---
 def _generate_flights_for_route(origin: str, destination: str, target_date_str: str) -> List[dict]:
-    """Generates exactly 4 consistent, unique flights for any route combination on a given day."""
     origin = origin.upper()
     destination = destination.upper()
     
@@ -388,8 +384,10 @@ async def search_flights(req: FlightSearchReq):
 @api.get("/flights/{flight_id}")
 async def flight_detail(flight_id: str):
     parts = flight_id.split("-")
-    if len(parts) >= 5 and parts[0] == "AV":
-        org, dst, target_date_str = parts[1], parts[2], parts[3]
+    if len(parts) >= 7 and parts[0] == "AV":
+        org, dst = parts[1], parts[2]
+        # Reconstruct full dynamic target date correctly from split tokens
+        target_date_str = f"{parts[3]}-{parts[4]}-{parts[5]}"
         route_pool = _generate_flights_for_route(org, dst, target_date_str)
         f = next((item for item in route_pool if item["id"] == flight_id), None)
         if not f:
@@ -423,8 +421,9 @@ async def flight_detail(flight_id: str):
 @api.post("/bookings")
 async def create_booking(req: CreateBookingReq, user=Depends(get_current_user)):
     parts = req.flight_id.split("-")
-    if len(parts) >= 5 and parts[0] == "AV":
-         org, dst, target_date_str = parts[1], parts[2], parts[3]
+    if len(parts) >= 7 and parts[0] == "AV":
+         org, dst = parts[1], parts[2]
+         target_date_str = f"{parts[3]}-{parts[4]}-{parts[5]}"
          pool = _generate_flights_for_route(org, dst, target_date_str)
          flight = next((item for item in pool if item["id"] == req.flight_id), pool[0])
     else:
@@ -586,7 +585,7 @@ async def request_refund(req: RefundReq, user=Depends(get_current_user)):
     cnt = await db.refunds.count_documents({})
     refund = {
         "id": gen_id(), "refund_id": f"RFD{cnt + 1:06d}", "booking_id": req.booking_id, "pnr": b["pnr"],
-        "user_id": user["id"], "amount": round(b["fare"]["total"] * 0.85, 2), "reason": req.reason, "status": "Requested", "created_at": now_iso(),
+        "user_id": user["id"], "amount": round(b["fare"]["total"] * 0.85, 2), "reason": r.reason, "status": "Requested", "created_at": now_iso(),
     }
     await db.refunds.insert_one(refund.copy())
     await db.bookings.update_one({"id": req.booking_id}, {"$set": {"status": "cancelled"}})
@@ -603,7 +602,8 @@ async def reschedule(req: RescheduleReq, user=Depends(get_current_user)):
     b = await db.bookings.find_one({"id": req.booking_id, "user_id": user["id"]}, PROJECT_NO_ID)
     if not b: raise HTTPException(status_code=404, detail="Not found")
     parts = req.new_flight_id.split("-")
-    org, dst, target_date_str = parts[1], parts[2], parts[3]
+    org, dst = parts[1], parts[2]
+    target_date_str = f"{parts[3]}-{parts[4]}-{parts[5]}"
     new_flight = _generate_flights_for_route(org, dst, target_date_str)[0]
     new_flight["id"] = req.new_flight_id
     diff = round(max(0, new_flight["base_price"] - b["flight_snapshot"]["base_price"]) * len(b["passengers"]), 2)
