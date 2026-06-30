@@ -156,7 +156,7 @@ def _generate_flights_for_route(origin: str, destination: str, target_date_str: 
         price_variance = random.randint(-400, 1200)
         final_base = sch["base"] + price_variance
         
-        dep_dt = datetime.fromisoformat(f"{target_date_str}T{sch['dep']}:00").replace(tzinfo=timezone.utc)
+      dep_dt = datetime.fromisoformat(f"{target_date_str}T{sch['dep']}:00Z")
         arr_dt = dep_dt + timedelta(minutes=duration_mins)
         
         total_seats = random.choice([180, 186, 290, 325])
