@@ -89,9 +89,9 @@ export default function FlightSearchWidget({ variant = "hero" }) {
           <label className="text-[10px] tracking-[0.2em] uppercase text-amber-700/90 mb-2 block">Pax</label>
           <div className="relative">
             <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-700" />
-            <input type="number" min="1" max="9" data-testid="passengers"
-              value={passengers} onChange={(e) => setPassengers(Math.max(1, +e.target.value))}
-              className="w-full bg-[#0B132B]/5 border border-[#E5E1D6] rounded-lg pl-9 pr-2 py-3.5 text-[#0B132B] text-sm" />
+         <input type="number" min="1" max="9" data-testid="passengers"
+        value={passengers} onChange={(e) => setPassengers(Math.max(1, +e.target.value))}
+       className="w-full bg-white border border-[#E5E1D6] rounded-lg pl-9 pr-2 py-3.5 text-black text-sm focus:outline-none" />
           </div>
         </div>
       </div>
