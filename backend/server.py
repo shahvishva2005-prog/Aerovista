@@ -40,11 +40,12 @@ db = client[os.environ["DB_NAME"]]
 
 # 🌟 APPLICATION INITIALIZATION 
 app = FastAPI(title="AeroVista Airlines API")
-
+# Make sure origins list has clean elements with commas and NO trailing text comments
 origins = [
     "http://localhost:3000",
     "https://aerovista.pages.dev",
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
