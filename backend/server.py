@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, Body
 from fastapi.responses import StreamingResponse, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
 ROOT_DIR = Path(__file__).parent
@@ -40,11 +41,14 @@ db = client[os.environ["DB_NAME"]]
 # 🌟 APPLICATION INITIALIZATION 
 app = FastAPI(title="AeroVista Airlines API")
 
-# 🔒 STEP 1: MOUNT ROBUST MIDDLEWARE ENGINE
+origins = [
+    "http://localhost:3000",
+    "https://aerovista.pages.dev",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
-    allow_credentials=False,  
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -52,15 +56,16 @@ app.add_middleware(
 # 🛠️ STEP 2: MANDATORY CORS ERROR BINDING EXCEPTION HANDLER
 @app.exception_handler(HTTPException)
 async def cors_error_protection_handler(request, exc):
+    # Keep whatever status_code and content your logic originally had here:
     response = JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail, "success": False}
+        content={"detail": exc.detail}
     )
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
+    # Manually append CORS headers to error responses so we can see what's failing!
+    response.headers["Access-Control-Allow-Origin"] = "https://aerovista.pages.dev"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
-
+    
 # 🚀 STEP 3: EXPLICIT PREFLIGHT OPTIONS ABSORBER
 @app.options("/{rest_of_path:path}")
 async def dynamic_preflight_override(rest_of_path: str):
